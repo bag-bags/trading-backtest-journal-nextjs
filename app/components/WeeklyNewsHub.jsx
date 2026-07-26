@@ -2,6 +2,19 @@
 
 import { useEffect, useState } from "react";
 
+// Impact color mapping
+const impactColors = {
+  "🔴 Extreme High Impact": { bg: "#f43f5e18", border: "#f43f5e44", text: "#f43f5e", glow: "0 0 20px #f43f5e22" },
+  "🔴 High Impact": { bg: "#f9731618", border: "#f9731644", text: "#f97316", glow: "0 0 20px #f9731622" },
+  "🟠 High Impact": { bg: "#f59e0b18", border: "#f59e0b44", text: "#f59e0b", glow: "0 0 20px #f59e0b22" },
+  "🟡 Medium-High Impact": { bg: "#eab30818", border: "#eab30844", text: "#eab308", glow: "0 0 15px #eab30818" },
+  "🟡 Medium Impact": { bg: "#a3e63518", border: "#a3e63544", text: "#a3e635", glow: "0 0 15px #a3e63518" },
+};
+
+function getImpactStyle(importance) {
+  return impactColors[importance] || impactColors["🟡 Medium Impact"];
+}
+
 const NEWS_TR = {
   en: {
     title: "Most Important News This Week For Traders",
