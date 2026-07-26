@@ -99,7 +99,7 @@ export default function Home() {
         });
         if (res.ok) {
           const payload = await res.json();
-          if (payload.files) {
+          if (payload.files && !payload.isReadOnly) {
             setJournalFiles(payload.files);
           }
         }
@@ -130,7 +130,34 @@ export default function Home() {
         });
         if (res.ok) {
           const payload = await res.json();
-          if (payload.files) {
+          if (payload.isReadOnly) {
+            // Read-only filesystem (Vercel) fallback!
+            const activeName = "manual-trades.csv";
+            const savedFiles = JSON.parse(localStorage.getItem("journal_files") || "[]");
+            let manualFile = savedFiles.find(f => f.name === activeName);
+            const headers = "Symbol,Type,Volume,Open Price,Close Price,Open Time,Close Time,Profit\n";
+            const row = `${newTrade.symbol},${newTrade.type},${newTrade.volume},${newTrade.openPrice},${newTrade.closePrice},${formatDate(newTrade.openTime)},${formatDate(newTrade.closeTime)},${newTrade.profit}\n`;
+            
+            if (!manualFile) {
+              manualFile = { name: activeName, content: headers + row };
+              savedFiles.push(manualFile);
+            } else {
+              manualFile.content += row;
+            }
+            
+            localStorage.setItem("journal_files", JSON.stringify(savedFiles));
+            setJournalFiles(savedFiles);
+            setActiveFileName(activeName);
+            localStorage.setItem("active_journal_file_name", activeName);
+            
+            const imported = parseCsvToTrades(manualFile.content);
+            setTrades(imported);
+            setSelectedIndex(0);
+            const firstSymbol = normalizeSymbol(newTrade.symbol);
+            setMarketSymbol(firstSymbol);
+            setProvider(isCryptoSymbol(firstSymbol) ? "binance" : "twelvedata");
+            setImportMessage(`Added trade to browser local storage (server read-only).`);
+          } else if (payload.files) {
             setJournalFiles(payload.files);
             const activeName = "manual-trades.csv";
             setActiveFileName(activeName);
@@ -377,9 +404,19 @@ export default function Home() {
       });
       if (res.ok) {
         const payload = await res.json();
-        if (payload.files) {
+        let targetName = newName.endsWith(".csv") ? newName : `${newName}.csv`;
+        
+        if (payload.isReadOnly) {
+          const saved = JSON.parse(localStorage.getItem("journal_files") || "[]");
+          const updated = saved.map(f => f.name === oldName ? { ...f, name: targetName } : f);
+          localStorage.setItem("journal_files", JSON.stringify(updated));
+          setJournalFiles(updated);
+          if (activeFileName === oldName) {
+            setActiveFileName(targetName);
+            localStorage.setItem("active_journal_file_name", targetName);
+          }
+        } else if (payload.files) {
           setJournalFiles(payload.files);
-          let targetName = newName.endsWith(".csv") ? newName : `${newName}.csv`;
           if (activeFileName === oldName) {
             setActiveFileName(targetName);
             localStorage.setItem("active_journal_file_name", targetName);
@@ -403,11 +440,21 @@ export default function Home() {
       });
       if (res.ok) {
         const payload = await res.json();
-        if (payload.files) {
+        const targetName = isArchiving
+          ? (file.name.startsWith("[ARCHIVE] ") ? file.name : `[ARCHIVE] ${file.name}`)
+          : file.name.replace("[ARCHIVE] ", "");
+
+        if (payload.isReadOnly) {
+          const saved = JSON.parse(localStorage.getItem("journal_files") || "[]");
+          const updated = saved.map(f => f.name === file.name ? { ...f, name: targetName, isArchived: isArchiving } : f);
+          localStorage.setItem("journal_files", JSON.stringify(updated));
+          setJournalFiles(updated);
+          if (activeFileName === file.name) {
+            setActiveFileName(targetName);
+            localStorage.setItem("active_journal_file_name", targetName);
+          }
+        } else if (payload.files) {
           setJournalFiles(payload.files);
-          const targetName = isArchiving
-            ? (file.name.startsWith("[ARCHIVE] ") ? file.name : `[ARCHIVE] ${file.name}`)
-            : file.name.replace("[ARCHIVE] ", "");
           if (activeFileName === file.name) {
             setActiveFileName(targetName);
             localStorage.setItem("active_journal_file_name", targetName);
@@ -440,7 +487,22 @@ export default function Home() {
       });
       if (res.ok) {
         const payload = await res.json();
-        if (payload.files) {
+        if (payload.isReadOnly) {
+          const saved = JSON.parse(localStorage.getItem("journal_files") || "[]");
+          const updated = saved.filter(f => f.name !== fileName);
+          localStorage.setItem("journal_files", JSON.stringify(updated));
+          setJournalFiles(updated);
+          if (activeFileName === fileName) {
+            const remaining = updated.filter(f => f.name !== fileName);
+            if (remaining.length > 0) {
+              handleSelectFile(remaining[0].name);
+            } else {
+              setTrades([defaultTrade]);
+              setActiveFileName("");
+              localStorage.removeItem("active_journal_file_name");
+            }
+          }
+        } else if (payload.files) {
           setJournalFiles(payload.files);
           if (activeFileName === fileName) {
             const remaining = payload.files.filter(f => f.name !== fileName);

@@ -4,33 +4,38 @@ import path from "path";
 
 // Helper to get all CSV files in the project root
 function getCsvFiles() {
-  const rootDir = process.cwd();
-  const files = fs.readdirSync(rootDir);
-  const csvFiles = files.filter(f => f.endsWith(".csv"));
-  
-  return csvFiles.map(filename => {
-    const filePath = path.join(rootDir, filename);
-    const content = fs.readFileSync(filePath, "utf-8");
-    const isArchived = filename.startsWith("[ARCHIVE]");
-    return {
-      name: filename,
-      content: content,
-      isArchived: isArchived
-    };
-  });
+  try {
+    const rootDir = process.cwd();
+    const files = fs.readdirSync(rootDir);
+    const csvFiles = files.filter(f => f.endsWith(".csv"));
+    
+    return csvFiles.map(filename => {
+      const filePath = path.join(rootDir, filename);
+      const content = fs.readFileSync(filePath, "utf-8");
+      const isArchived = filename.startsWith("[ARCHIVE]");
+      return {
+        name: filename,
+        content: content,
+        isArchived: isArchived
+      };
+    });
+  } catch (e) {
+    // If reading root directory fails (e.g. restricted env), return empty
+    return [];
+  }
 }
 
-// GET: List all CSV files with contents and archive status
+// GET: List all CSV files
 export async function GET() {
   try {
     const files = getCsvFiles();
     return NextResponse.json({ files });
   } catch (error) {
-    return NextResponse.json({ error: error.message }, { status: 500 });
+    return NextResponse.json({ files: [] });
   }
 }
 
-// POST: Add a trade to manual-trades.csv (create if not exists)
+// POST: Add a trade to manual-trades.csv
 export async function POST(req) {
   try {
     const { trade } = await req.json();
@@ -43,7 +48,6 @@ export async function POST(req) {
     
     const headers = "Symbol,Type,Volume,Open Price,Close Price,Open Time,Close Time,Profit\n";
     
-    // Format dates to ISO/CSV style: YYYY-MM-DD HH:MM
     const formatDate = (dateStr) => {
       if (!dateStr) return "";
       const d = new Date(dateStr);
@@ -60,63 +64,78 @@ export async function POST(req) {
 
     const row = `${trade.symbol},${trade.type},${trade.volume},${trade.openPrice},${trade.closePrice},${formatDate(trade.openTime)},${formatDate(trade.closeTime)},${trade.profit}\n`;
 
-    let fileExists = fs.existsSync(filePath);
-    if (!fileExists) {
-      fs.writeFileSync(filePath, headers + row, "utf-8");
-    } else {
-      fs.appendFileSync(filePath, row, "utf-8");
+    try {
+      let fileExists = fs.existsSync(filePath);
+      if (!fileExists) {
+        fs.writeFileSync(filePath, headers + row, "utf-8");
+      } else {
+        fs.appendFileSync(filePath, row, "utf-8");
+      }
+      return NextResponse.json({ success: true, files: getCsvFiles() });
+    } catch (fsErr) {
+      // Graceful fallback for read-only filesystem (like Vercel serverless)
+      return NextResponse.json({ 
+        success: true, 
+        isReadOnly: true, 
+        warning: "Server filesystem is read-only. Falling back to local browser storage." 
+      });
     }
-
-    // Return the updated files list
-    return NextResponse.json({ success: true, files: getCsvFiles() });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
 }
 
-// PUT: Rename or Archive/Unarchive a CSV file
+// PUT: Rename, Archive/Unarchive or modify file content
 export async function PUT(req) {
   try {
     const { oldName, newName, archive, content } = await req.json();
     const rootDir = process.cwd();
     
     const oldPath = path.join(rootDir, oldName);
-    if (!fs.existsSync(oldPath)) {
-      return NextResponse.json({ error: "File not found" }, { status: 404 });
-    }
 
-    if (content !== undefined) {
-      fs.writeFileSync(oldPath, content, "utf-8");
-    }
+    try {
+      if (!fs.existsSync(oldPath)) {
+        return NextResponse.json({ error: "File not found" }, { status: 404 });
+      }
 
-    let targetName = newName;
-    if (archive !== undefined) {
-      if (archive) {
-        if (!oldName.startsWith("[ARCHIVE] ")) {
-          targetName = `[ARCHIVE] ${oldName}`;
+      if (content !== undefined) {
+        fs.writeFileSync(oldPath, content, "utf-8");
+      }
+
+      let targetName = newName;
+      if (archive !== undefined) {
+        if (archive) {
+          if (!oldName.startsWith("[ARCHIVE] ")) {
+            targetName = `[ARCHIVE] ${oldName}`;
+          } else {
+            targetName = oldName;
+          }
         } else {
-          targetName = oldName;
-        }
-      } else {
-        if (oldName.startsWith("[ARCHIVE] ")) {
-          targetName = oldName.replace("[ARCHIVE] ", "");
-        } else {
-          targetName = oldName;
+          if (oldName.startsWith("[ARCHIVE] ")) {
+            targetName = oldName.replace("[ARCHIVE] ", "");
+          } else {
+            targetName = oldName;
+          }
         }
       }
-    }
 
-    // Ensure target ends with .csv
-    if (targetName && !targetName.endsWith(".csv")) {
-      targetName += ".csv";
-    }
+      if (targetName && !targetName.endsWith(".csv")) {
+        targetName += ".csv";
+      }
 
-    if (targetName && targetName !== oldName) {
-      const newPath = path.join(rootDir, targetName);
-      fs.renameSync(oldPath, newPath);
-    }
+      if (targetName && targetName !== oldName) {
+        const newPath = path.join(rootDir, targetName);
+        fs.renameSync(oldPath, newPath);
+      }
 
-    return NextResponse.json({ success: true, files: getCsvFiles() });
+      return NextResponse.json({ success: true, files: getCsvFiles() });
+    } catch (fsErr) {
+      return NextResponse.json({ 
+        success: true, 
+        isReadOnly: true, 
+        warning: "Server filesystem is read-only. File was updated in browser memory." 
+      });
+    }
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
@@ -131,12 +150,19 @@ export async function DELETE(req) {
       return NextResponse.json({ error: "Missing name parameter" }, { status: 400 });
     }
 
-    const filePath = path.join(process.cwd(), name);
-    if (fs.existsSync(filePath)) {
-      fs.unlinkSync(filePath);
+    try {
+      const filePath = path.join(process.cwd(), name);
+      if (fs.existsSync(filePath)) {
+        fs.unlinkSync(filePath);
+      }
+      return NextResponse.json({ success: true, files: getCsvFiles() });
+    } catch (fsErr) {
+      return NextResponse.json({ 
+        success: true, 
+        isReadOnly: true, 
+        warning: "Server filesystem is read-only. File was removed from browser memory." 
+      });
     }
-
-    return NextResponse.json({ success: true, files: getCsvFiles() });
   } catch (error) {
     return NextResponse.json({ error: error.message }, { status: 500 });
   }
