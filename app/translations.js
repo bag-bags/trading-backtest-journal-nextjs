@@ -60,7 +60,14 @@ export const translations = {
     calendar: "Calendar",
     knowledge: "Knowledge",
     showChart: "Show Chart",
-    hideChart: "Hide Chart"
+    hideChart: "Hide Chart",
+    forEasilyBacktesting: "For easily backtesting",
+    binanceOption: "Binance free, crypto",
+    twelveDataOption: "TwelveData free key",
+    twelveDataKey: "TwelveData Key",
+    twelveDataPlaceholder: "Default: .env.local (paste key to override)",
+    binanceDesc: "Binance public klines, no API key needed.",
+    twelveDataDesc: "TwelveData time series, good for Gold and Forex with a free key."
   },
   fr: {
     chartSettings: "Configuration du graphique",
@@ -123,7 +130,14 @@ export const translations = {
     calendar: "Calendrier",
     knowledge: "Bibliothèque",
     showChart: "Afficher le graphique",
-    hideChart: "Masquer le graphique"
+    hideChart: "Masquer le graphique",
+    forEasilyBacktesting: "Pour un backtesting facile",
+    binanceOption: "Binance gratuit, crypto",
+    twelveDataOption: "TwelveData clé gratuite",
+    twelveDataKey: "Clé TwelveData",
+    twelveDataPlaceholder: "Par défaut: .env.local (coller la clé pour remplacer)",
+    binanceDesc: "Données publiques Binance, aucune clé API requise.",
+    twelveDataDesc: "Séries TwelveData, adaptées pour l'Or et le Forex avec clé gratuite."
   },
   ar: {
     chartSettings: "إعدادات الرسم البياني",
@@ -186,6 +200,13 @@ export const translations = {
     calendar: "التقويم",
     knowledge: "المعرفة",
     showChart: "إظهار الرسم البياني",
-    hideChart: "إخفاء الرسم البياني"
+    hideChart: "إخفاء الرسم البياني",
+    forEasilyBacktesting: "لتسهيل الاختبار الخلفي",
+    binanceOption: "بينانس مجاني، عملات رقمية",
+    twelveDataOption: "TwelveData مفتاح مجاني",
+    twelveDataKey: "مفتاح TwelveData",
+    twelveDataPlaceholder: "افتراضي: .env.local (الصق المفتاح للتعديل)",
+    binanceDesc: "بيانات بينانس العامة، لا يلزم مفتاح API.",
+    twelveDataDesc: "بيانات TwelveData، مناسبة للذهب والفوركس بمفتاح مجاني."
   }
 };

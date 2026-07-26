@@ -9,9 +9,58 @@ const SESSIONS = [
   { name: "Sydney", flag: "🇦🇺", startUtc: 22, endUtc: 7, color: "#10b981" },
 ];
 
-export default function LiveSessionClocks() {
+const SESS_TR = {
+  en: {
+    title: "Live Market Trading Sessions",
+    utcTime: "UTC Time",
+    active: "ACTIVE",
+    upcoming: "UPCOMING",
+    endsIn: "Ends in",
+    startsIn: "Starts in",
+    tokyo: "Tokyo / Asian",
+    london: "London",
+    newYork: "New York",
+    sydney: "Sydney"
+  },
+  fr: {
+    title: "Sessions de Trading en Direct",
+    utcTime: "Heure UTC",
+    active: "ACTIF",
+    upcoming: "À VENIR",
+    endsIn: "Se termine dans",
+    startsIn: "Commence dans",
+    tokyo: "Tokyo / Asie",
+    london: "Londres",
+    newYork: "New York",
+    sydney: "Sydney"
+  },
+  ar: {
+    title: "جلسات التداول الحية في السوق",
+    utcTime: "توقيت UTC",
+    active: "نشط",
+    upcoming: "قادم",
+    endsIn: "ينتهي في",
+    startsIn: "يبدأ في",
+    tokyo: "طوكيو / آسيا",
+    london: "لندن",
+    newYork: "نيويورك",
+    sydney: "سيدني"
+  }
+};
+
+export default function LiveSessionClocks({ lang = "en" }) {
   const [now, setNow] = useState(new Date());
   const [mounted, setMounted] = useState(false);
+
+  const trans = SESS_TR[lang] || SESS_TR.en;
+
+  const getSessionName = (name) => {
+    if (name === "Tokyo / Asian") return trans.tokyo;
+    if (name === "London") return trans.london;
+    if (name === "New York") return trans.newYork;
+    if (name === "Sydney") return trans.sydney;
+    return name;
+  };
 
   useEffect(() => {
     setMounted(true);
@@ -65,6 +114,10 @@ export default function LiveSessionClocks() {
       const h = Math.floor(secs / 3600);
       const m = Math.floor((secs % 3600) / 60);
       const s = Math.floor(secs % 60);
+      
+      if (lang === "ar") {
+        return `${String(h).padStart(2, "0")} س ${String(m).padStart(2, "0")} د ${String(s).padStart(2, "0")} ث`;
+      }
       return `${String(h).padStart(2, "0")}h ${String(m).padStart(2, "0")}m ${String(s).padStart(2, "0")}s`;
     };
 
@@ -74,14 +127,14 @@ export default function LiveSessionClocks() {
   };
 
   return (
-    <div style={{ background: "#0d1117", border: "1px solid #21262d", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px" }}>
+    <div style={{ background: "#111113", border: "1px solid #222225", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "16px" }}>🕒</span>
-          <span style={{ color: "#8b949e", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>Live Market Trading Sessions</span>
+          <span style={{ color: "#888893", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>{trans.title}</span>
         </div>
-        <div suppressHydrationWarning style={{ fontSize: "12px", fontWeight: "700", color: "#38bdf8", background: "#161b22", padding: "4px 10px", borderRadius: "6px", border: "1px solid #21262d" }}>
-          🌐 UTC Time: {mounted ? now.toUTCString().slice(17, 25) : "--:--:--"}
+        <div suppressHydrationWarning style={{ fontSize: "12px", fontWeight: "700", color: "#a3e635", background: "#050506", padding: "4px 10px", borderRadius: "6px", border: "1px solid #222225" }}>
+          🌐 {trans.utcTime}: {mounted ? now.toUTCString().slice(17, 25) : "--:--:--"}
         </div>
       </div>
 
@@ -91,19 +144,19 @@ export default function LiveSessionClocks() {
             ? getSessionState(session) 
             : { isActive: false, remainingText: "--h --m --s", pct: 0 };
           return (
-            <div key={session.name} style={{ background: "#161b22", border: `1px solid ${isActive ? session.color + "66" : "#21262d"}`, borderRadius: "8px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "6px", position: "relative", overflow: "hidden" }}>
+            <div key={session.name} style={{ background: "#050506", border: `1px solid ${isActive ? session.color + "66" : "#222225"}`, borderRadius: "8px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "6px", position: "relative", overflow: "hidden" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
-                <span style={{ fontWeight: "700", fontSize: "13px" }}>{session.flag} {session.name}</span>
-                <span style={{ padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: "800", background: isActive ? `${session.color}22` : "#21262d", color: isActive ? session.color : "#8b949e" }}>
-                  {isActive ? "🟢 ACTIVE" : "⏳ UPCOMING"}
+                <span style={{ fontWeight: "700", fontSize: "13px" }}>{session.flag} {getSessionName(session.name)}</span>
+                <span style={{ padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: "800", background: isActive ? `${session.color}22` : "#222225", color: isActive ? session.color : "#888893" }}>
+                  {isActive ? `🟢 ${trans.active}` : `⏳ ${trans.upcoming}`}
                 </span>
               </div>
-              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#8b949e" }}>
-                <span>{isActive ? "Ends in:" : "Starts in:"}</span>
-                <strong style={{ color: isActive ? "#e6edf3" : "#8b949e", fontFamily: "monospace" }}>{remainingText}</strong>
+              <div style={{ display: "flex", justifyContent: "space-between", fontSize: "11px", color: "#888893" }}>
+                <span>{isActive ? `${trans.endsIn}:` : `${trans.startsIn}:`}</span>
+                <strong style={{ color: isActive ? "#ffffff" : "#888893", fontFamily: "monospace" }}>{remainingText}</strong>
               </div>
               {isActive && (
-                <div style={{ width: "100%", height: "4px", background: "#21262d", borderRadius: "2px", overflow: "hidden", marginTop: "2px" }}>
+                <div style={{ width: "100%", height: "4px", background: "#222225", borderRadius: "2px", overflow: "hidden", marginTop: "2px" }}>
                   <div style={{ height: "100%", width: `${pct}%`, background: session.color, transition: "width 1s linear" }} />
                 </div>
               )}

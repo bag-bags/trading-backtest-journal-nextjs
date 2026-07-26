@@ -666,7 +666,7 @@ export default function Home() {
             <span className="mark">ST</span>
             <div>
               <h1>Soufiane Trade</h1>
-              <p style={{ margin: 0, fontSize: "11px", color: "#8b949e" }}>For easily backtesting</p>
+              <p style={{ margin: 0, fontSize: "11px", color: "#888893" }}>{t.forEasilyBacktesting}</p>
             </div>
           </div>
           
@@ -677,9 +677,9 @@ export default function Home() {
               localStorage.setItem("preferred_language", e.target.value);
             }}
             style={{
-              background: "#161b22",
-              border: "1px solid #30363d",
-              color: "#e6edf3",
+              background: "#111113",
+              border: "1px solid #222225",
+              color: "#ffffff",
               padding: "4px 8px",
               borderRadius: "6px",
               fontSize: "12px",
@@ -699,8 +699,8 @@ export default function Home() {
           <label>
             {t.provider}
             <select value={provider} onChange={(event) => setProvider(event.target.value)}>
-              <option value="binance">Binance free, crypto</option>
-              <option value="twelvedata">TwelveData free key</option>
+              <option value="binance">{t.binanceOption}</option>
+              <option value="twelvedata">{t.twelveDataOption}</option>
             </select>
           </label>
           <label>
@@ -712,8 +712,8 @@ export default function Home() {
           </datalist>
           {provider === "twelvedata" && (
             <label>
-              TwelveData key
-              <input value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder="Default: .env.local (paste key to override)" />
+              {t.twelveDataKey}
+              <input value={apiKey} onChange={(event) => setApiKey(event.target.value)} placeholder={t.twelveDataPlaceholder} />
             </label>
           )}
           <button className="primary" onClick={() => fetchCandles()} disabled={loading}>{loading ? t.loading : t.loadCandles}</button>
@@ -842,7 +842,7 @@ export default function Home() {
         <header className="topbar">
           <div>
             <h2>{marketSymbol} <span>{interval}</span></h2>
-            <p>{provider === "binance" ? "Binance public klines, no API key needed." : "TwelveData time series, good for Gold and Forex with a free key."}</p>
+            <p>{provider === "binance" ? t.binanceDesc : t.twelveDataDesc}</p>
           </div>
           <div className="stats">
             <Stat label={t.netProfit} value={money(stats.total)} tone={stats.total >= 0 ? "good" : "bad"} />
@@ -939,9 +939,9 @@ export default function Home() {
 
         {/* Live Session Clocks & Pro Knowledge Hub Banner */}
         <div style={{ display: "flex", flexDirection: "column", gap: "0px", padding: "0 0 10px 0" }}>
-          <LiveSessionClocks />
-          <KnowledgeHub />
-          <WeeklyNewsHub />
+          <LiveSessionClocks lang={lang} />
+          <KnowledgeHub lang={lang} />
+          <WeeklyNewsHub lang={lang} />
         </div>
 
         <div className="mainGrid" style={{ gridTemplateColumns: showChart ? "minmax(0, 1fr) 330px" : "1fr" }}>
