@@ -176,26 +176,26 @@ function ChartContent() {
       width: container.clientWidth,
       height: container.clientHeight,
       layout: {
-        background: { type: ColorType.Solid, color: "#0d1117" },
-        textColor: "#8b949e",
-        fontFamily: "Inter, system-ui, sans-serif",
+        background: { type: ColorType.Solid, color: "#050506" },
+        textColor: "#888893",
+        fontFamily: "system-ui, sans-serif",
         fontSize: 11,
       },
       grid: {
-        vertLines: { color: "#1a2230" },
-        horzLines: { color: "#1a2230" },
+        vertLines: { color: "#17171a" },
+        horzLines: { color: "#17171a" },
       },
       crosshair: {
         mode: CrosshairMode.Normal,
-        vertLine: { color: "#3a4556", width: 1, style: 2, labelBackgroundColor: "#26313d" },
-        horzLine: { color: "#3a4556", width: 1, style: 2, labelBackgroundColor: "#26313d" },
+        vertLine: { color: "#222225", width: 1, style: 2, labelBackgroundColor: "#111113" },
+        horzLine: { color: "#222225", width: 1, style: 2, labelBackgroundColor: "#111113" },
       },
       rightPriceScale: {
-        borderColor: "#26313d",
+        borderColor: "#222225",
         scaleMargins: { top: 0.1, bottom: 0.1 },
       },
       timeScale: {
-        borderColor: "#26313d",
+        borderColor: "#222225",
         timeVisible: true,
         secondsVisible: false,
       },
@@ -207,9 +207,9 @@ function ChartContent() {
 
     // Candlestick series
     const candleSeries = chart.addSeries(CandlestickSeries, {
-      upColor: "#22c55e",
+      upColor: "#a3e635",
       downColor: "#f43f5e",
-      wickUpColor: "#22c55e",
+      wickUpColor: "#a3e635",
       wickDownColor: "#f43f5e",
       borderVisible: false,
     });
@@ -238,7 +238,7 @@ function ChartContent() {
 
       // Entry line
       const entryLine = chart.addSeries(LineSeries, {
-        color: isBuy ? "#22c55e" : "#f43f5e",
+        color: isBuy ? "#a3e635" : "#f43f5e",
         lineWidth: 2,
         lineStyle: 0,
         priceLineVisible: false,
@@ -252,7 +252,7 @@ function ChartContent() {
 
       // Exit line
       const exitLine = chart.addSeries(LineSeries, {
-        color: isWin ? "#22c55e" : "#f43f5e",
+        color: isWin ? "#a3e635" : "#f43f5e",
         lineWidth: 2,
         lineStyle: 2,
         priceLineVisible: false,
@@ -266,7 +266,7 @@ function ChartContent() {
 
       // Connection line
       const connLine = chart.addSeries(LineSeries, {
-        color: isWin ? "rgba(34,197,94,0.5)" : "rgba(244,63,94,0.5)",
+        color: isWin ? "rgba(163,230,53,0.5)" : "rgba(244,63,94,0.5)",
         lineWidth: 1,
         lineStyle: 2,
         priceLineVisible: false,
@@ -284,14 +284,14 @@ function ChartContent() {
         {
           time: entryTime,
           position: isBuy ? "belowBar" : "aboveBar",
-          color: isBuy ? "#22c55e" : "#f43f5e",
+          color: isBuy ? "#a3e635" : "#f43f5e",
           shape: isBuy ? "arrowUp" : "arrowDown",
           text: `Entry ${trade.openPrice.toFixed(2)}`,
         },
         {
           time: exitTime,
           position: isWin ? "aboveBar" : "belowBar",
-          color: isWin ? "#22c55e" : "#f43f5e",
+          color: isWin ? "#a3e635" : "#f43f5e",
           shape: isWin ? "arrowUp" : "arrowDown",
           text: `Exit ${trade.closePrice.toFixed(2)} (${trade.profit >= 0 ? "+" : ""}$${trade.profit.toFixed(2)})`,
         },
