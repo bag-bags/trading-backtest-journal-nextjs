@@ -272,8 +272,14 @@ export default function Home() {
   }, [visibleCandles, selectedTrade, loading]);
 
   useEffect(() => {
-    if (candles.length) setWindowEndIndex(candles.length);
-  }, [candles]);
+    if (candles.length) {
+      if (selectedTrade) {
+        fitTrade();
+      } else {
+        setWindowEndIndex(candles.length);
+      }
+    }
+  }, [candles, selectedTrade]);
 
   async function fetchCandles(nextInterval = interval) {
     setLoading(true);
@@ -590,7 +596,8 @@ export default function Home() {
       const distance = Math.abs(candle.time - center);
       return distance < bestDistance ? index : best;
     }, 0);
-    const nextVisible = Math.min(maxVisibleCandles, Math.max(minVisibleCandles, 140));
+    const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+    const nextVisible = Math.min(maxVisibleCandles, Math.max(minVisibleCandles, isMobile ? 35 : 75));
     setVisibleCount(nextVisible);
     setWindowEndIndex(clamp(nearestIndex + Math.round(nextVisible / 2), minVisibleCandles, candles.length));
   }
@@ -611,7 +618,7 @@ export default function Home() {
     const width = canvas.width / dpr;
     const height = canvas.height / dpr;
     context.clearRect(0, 0, width, height);
-    context.fillStyle = "#0d1117";
+    context.fillStyle = "#050506";
     context.fillRect(0, 0, width, height);
 
     if (!visibleCandles.length) {
@@ -645,8 +652,8 @@ export default function Home() {
       const yOpen = yFor(candle.open);
       const yClose = yFor(candle.close);
       const up = candle.close >= candle.open;
-      context.strokeStyle = up ? "#22c55e" : "#f43f5e";
-      context.fillStyle = up ? "#22c55e" : "#f43f5e";
+      context.strokeStyle = up ? "#a3e635" : "#f43f5e";
+      context.fillStyle = up ? "#a3e635" : "#f43f5e";
       context.lineWidth = 1;
       context.beginPath();
       context.moveTo(x, yFor(candle.high));

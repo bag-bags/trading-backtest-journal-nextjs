@@ -465,3 +465,75 @@
   color: #a3e635;
   background: rgba(163, 230, 53, 0.05);
 }
+
+/* ─── Mobile Responsiveness ─── */
+@media (max-width: 768px) {
+  .chartPage {
+    grid-template-columns: 1fr;
+    grid-template-rows: 52px minmax(0, 1fr) auto;
+  }
+  
+  .drawSidebar {
+    grid-row: 3;
+    grid-column: 1;
+    flex-direction: row;
+    height: 48px;
+    border-right: none;
+    border-top: 1px solid #222225;
+    justify-content: space-around;
+    padding: 4px 10px;
+    overflow: hidden;
+  }
+  
+  .drawSidebar button {
+    width: 36px;
+    height: 36px;
+    border-radius: 6px;
+  }
+
+  .drawSidebar button .tooltip {
+    display: none !important;
+  }
+
+  .drawSidebar .clearBtn {
+    margin-top: 0;
+    font-size: 10px;
+    height: 36px;
+    padding: 0 4px;
+  }
+  
+  .chartTopBar {
+    gap: 8px;
+    padding: 0 10px;
+  }
+  
+  .chartTopBar .symbolInfo h1 {
+    font-size: 15px;
+  }
+  
+  .chartTopBar .symbolInfo span {
+    font-size: 11px;
+  }
+  
+  .chartTopBar .tradeInfo {
+    gap: 8px;
+  }
+  
+  .chartTopBar .tradeProfit {
+    font-size: 13px;
+  }
+
+  .chartTopBar .tradeInfo .tradeType {
+    min-width: auto;
+    padding: 3px 6px;
+    font-size: 10px;
+  }
+
+  .modalContent {
+    width: calc(100% - 32px);
+    right: 16px;
+    left: 16px;
+    bottom: 60px;
+    top: auto;
+  }
+}

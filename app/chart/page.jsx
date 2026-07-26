@@ -306,8 +306,9 @@ function ChartContent() {
       const entryTime = Math.floor(trade.openTime.getTime() / 1000);
       const exitTime = Math.floor(trade.closeTime.getTime() / 1000);
       const candleSecs = intervalMs(interval) / 1000;
-      const beforeBuffer = candleSecs * 120;
-      const afterBuffer = candleSecs * 10;
+      const isMobile = typeof window !== "undefined" && window.innerWidth < 768;
+      const beforeBuffer = candleSecs * (isMobile ? 18 : 65);
+      const afterBuffer = candleSecs * (isMobile ? 12 : 25);
       chart.priceScale("right").applyOptions({ autoScale: true });
       chart.timeScale().setVisibleRange({
         from: entryTime - beforeBuffer,
