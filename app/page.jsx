@@ -61,6 +61,7 @@ export default function Home() {
   const [renamingFileName, setRenamingFileName] = useState("");
   const [renameInputVal, setRenameInputVal] = useState("");
   const [lang, setLang] = useState("en");
+  const [mobileMenuOpen, setMobileMenuOpen] = useState(false);
 
   useEffect(() => {
     const savedLang = localStorage.getItem("preferred_language");
@@ -660,8 +661,9 @@ export default function Home() {
 
   return (
     <main className="shell">
-      <aside className="sidebar">
-        <div className="brand" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%" }}>
+      <div className={`sidebarOverlay ${mobileMenuOpen ? "open" : ""}`} onClick={() => setMobileMenuOpen(false)} />
+      <aside className={`sidebar ${mobileMenuOpen ? "open" : ""}`}>
+        <div className="brand" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
             <span className="mark">ST</span>
             <div>
@@ -670,28 +672,29 @@ export default function Home() {
             </div>
           </div>
           
-          <select 
-            value={lang} 
-            onChange={(e) => {
-              setLang(e.target.value);
-              localStorage.setItem("preferred_language", e.target.value);
-            }}
-            style={{
-              background: "#111113",
-              border: "1px solid #222225",
-              color: "#ffffff",
-              padding: "4px 8px",
-              borderRadius: "6px",
-              fontSize: "12px",
-              cursor: "pointer",
-              marginLeft: lang === "ar" ? "0" : "auto",
-              marginRight: lang === "ar" ? "auto" : "0"
-            }}
-          >
-            <option value="en">🇬🇧 EN</option>
-            <option value="fr">🇫🇷 FR</option>
-            <option value="ar">🇲🇦 AR</option>
-          </select>
+          <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <select 
+              value={lang} 
+              onChange={(e) => {
+                setLang(e.target.value);
+                localStorage.setItem("preferred_language", e.target.value);
+              }}
+              style={{
+                background: "#111113",
+                border: "1px solid #222225",
+                color: "#ffffff",
+                padding: "4px 8px",
+                borderRadius: "6px",
+                fontSize: "12px",
+                cursor: "pointer"
+              }}
+            >
+              <option value="en">🇬🇧 EN</option>
+              <option value="fr">🇫🇷 FR</option>
+              <option value="ar">🇲🇦 AR</option>
+            </select>
+            <button className="sidebarCloseBtn" onClick={() => setMobileMenuOpen(false)}>✕</button>
+          </div>
         </div>
 
         <section className="section">
@@ -840,9 +843,12 @@ export default function Home() {
 
       <section className="workspace">
         <header className="topbar">
-          <div>
-            <h2>{marketSymbol} <span>{interval}</span></h2>
-            <p>{provider === "binance" ? t.binanceDesc : t.twelveDataDesc}</p>
+          <div style={{ display: "flex", alignItems: "center", gap: "12px" }}>
+            <button className="menuToggleBtn" onClick={() => setMobileMenuOpen(true)}>☰</button>
+            <div>
+              <h2>{marketSymbol} <span>{interval}</span></h2>
+              <p>{provider === "binance" ? t.binanceDesc : t.twelveDataDesc}</p>
+            </div>
           </div>
           <div className="stats">
             <Stat label={t.netProfit} value={money(stats.total)} tone={stats.total >= 0 ? "good" : "bad"} />
