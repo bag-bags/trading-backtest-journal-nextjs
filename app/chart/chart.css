@@ -1,0 +1,452 @@
+/* ─── Advanced Chart Page Styles ─── */
+
+.chartPage {
+  display: grid;
+  grid-template-columns: 52px minmax(0, 1fr);
+  grid-template-rows: 52px minmax(0, 1fr);
+  height: 100vh;
+  background: #090d12;
+  color: #e6edf3;
+  overflow: hidden;
+}
+
+/* ─── Top Bar ─── */
+
+.chartTopBar {
+  grid-column: 1 / -1;
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  padding: 0 16px;
+  background: #0b1016;
+  border-bottom: 1px solid #26313d;
+  z-index: 10;
+  overflow-x: auto;
+  scrollbar-width: none;
+}
+.chartTopBar::-webkit-scrollbar {
+  display: none;
+}
+
+.chartTopBar .backBtn {
+  display: grid;
+  place-items: center;
+  width: 36px;
+  height: 36px;
+  border: 1px solid #26313d;
+  border-radius: 8px;
+  background: #0f151d;
+  color: #e6edf3;
+  cursor: pointer;
+  font-size: 16px;
+  transition: border-color 0.15s, background 0.15s;
+}
+
+.chartTopBar .backBtn:hover {
+  border-color: #657386;
+  background: #151d27;
+}
+
+.chartTopBar .symbolInfo {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.chartTopBar .symbolInfo h1 {
+  font-size: 18px;
+  margin: 0;
+  font-weight: 800;
+}
+
+.chartTopBar .symbolInfo span {
+  color: #8b949e;
+  font-size: 13px;
+}
+
+.chartTopBar .tradeInfo {
+  margin-left: auto;
+  display: flex;
+  align-items: center;
+  gap: 16px;
+  font-size: 13px;
+}
+
+.chartTopBar .tradeInfo .tradeType {
+  display: inline-flex;
+  min-width: 48px;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 4px 10px;
+  font-size: 11px;
+  font-weight: 850;
+}
+
+.chartTopBar .tradeInfo .buy {
+  background: #22c55e;
+  color: #03130a;
+}
+
+.chartTopBar .tradeInfo .sell {
+  background: #f43f5e;
+  color: #18050a;
+}
+
+.chartTopBar .tradeProfit {
+  font-weight: 800;
+  font-size: 16px;
+}
+
+/* ─── Intervals & Indicators Toolbar ─── */
+
+.chartToolstrip {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  flex-wrap: nowrap;
+}
+
+.chartToolstrip .intervalBtns {
+  display: inline-flex;
+  border: 1px solid #26313d;
+  border-radius: 7px;
+  overflow: hidden;
+  background: #0f151d;
+}
+
+.chartToolstrip .intervalBtns button {
+  min-height: 32px;
+  min-width: 44px;
+  border: 0;
+  border-right: 1px solid #26313d;
+  color: #c9d1d9;
+  background: transparent;
+  cursor: pointer;
+  font-size: 12px;
+  font-weight: 600;
+}
+
+.chartToolstrip .intervalBtns button:last-child {
+  border-right: 0;
+}
+
+.chartToolstrip .intervalBtns button.active {
+  background: #e6edf3;
+  color: #090d12;
+  font-weight: 850;
+}
+
+.divider {
+  width: 1px;
+  height: 28px;
+  background: #26313d;
+  margin: 0 4px;
+}
+
+/* ─── Indicator Toggles ─── */
+
+.indicatorToggles {
+  display: flex;
+  gap: 4px;
+  flex-wrap: wrap;
+}
+
+.indicatorToggles button {
+  min-height: 30px;
+  border: 1px solid #26313d;
+  border-radius: 6px;
+  background: #0f151d;
+  color: #8b949e;
+  padding: 0 10px;
+  cursor: pointer;
+  font-size: 11px;
+  font-weight: 600;
+  transition: all 0.15s;
+}
+
+.indicatorToggles button.active {
+  border-color: #60a5fa;
+  color: #60a5fa;
+  background: rgba(96, 165, 250, 0.08);
+}
+
+.indicatorToggles button:hover {
+  border-color: #657386;
+}
+
+/* ─── Drawing Tools Sidebar ─── */
+
+.drawSidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: 8px 6px;
+  background: #0b1016;
+  border-right: 1px solid #26313d;
+  overflow-y: auto;
+}
+
+.drawSidebar button {
+  display: grid;
+  place-items: center;
+  width: 40px;
+  height: 40px;
+  border: 1px solid transparent;
+  border-radius: 8px;
+  background: transparent;
+  color: #8b949e;
+  cursor: pointer;
+  font-size: 18px;
+  transition: all 0.15s;
+  position: relative;
+}
+
+.drawSidebar button:hover {
+  background: #151d27;
+  color: #e6edf3;
+}
+
+.drawSidebar button.active {
+  background: rgba(96, 165, 250, 0.12);
+  border-color: #60a5fa;
+  color: #60a5fa;
+}
+
+.drawSidebar button .tooltip {
+  display: none;
+  position: absolute;
+  left: 48px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: #1c2432;
+  color: #e6edf3;
+  font-size: 11px;
+  padding: 4px 8px;
+  border-radius: 4px;
+  white-space: nowrap;
+  pointer-events: none;
+  z-index: 100;
+}
+
+.drawSidebar button:hover .tooltip {
+  display: block;
+}
+
+.drawSidebar .clearBtn {
+  margin-top: auto;
+  color: #f43f5e;
+  font-size: 11px;
+  font-weight: 700;
+  height: 36px;
+}
+
+.drawSidebar .clearBtn:hover {
+  background: rgba(244, 63, 94, 0.1);
+  color: #f43f5e;
+}
+
+/* ─── Chart Area ─── */
+
+.chartArea {
+  position: relative;
+  min-height: 0;
+  background: #0d1117;
+}
+
+.chartContainer {
+  width: 100%;
+  height: 100%;
+}
+
+.drawingOverlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  pointer-events: none;
+  z-index: 5;
+}
+
+.drawingOverlay.drawing {
+  pointer-events: auto;
+  cursor: crosshair;
+}
+
+/* ─── Trade Markers ─── */
+
+.tradeMarkerEntry {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+  border: 2px solid #e6edf3;
+}
+
+.tradeMarkerExit {
+  width: 12px;
+  height: 12px;
+  border-radius: 50%;
+}
+
+/* ─── Indicator Settings Modal ─── */
+
+.modalOverlay {
+  position: fixed;
+  inset: 0;
+  background: transparent;
+  z-index: 1000;
+}
+
+.modalContent {
+  position: absolute;
+  top: 54px;
+  right: 16px;
+  background: #0f141b;
+  border: 1px solid #26313d;
+  border-radius: 12px;
+  width: 380px;
+  max-height: 80vh;
+  display: grid;
+  grid-template-rows: auto 1fr auto;
+  overflow: hidden;
+  box-shadow: 0 15px 30px rgba(0, 0, 0, 0.6);
+}
+
+.modalHeader {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 16px 20px;
+  border-bottom: 1px solid #26313d;
+}
+
+.modalHeader h3 {
+  margin: 0;
+  font-size: 16px;
+  font-weight: 700;
+}
+
+.modalHeader .closeBtn {
+  background: transparent;
+  border: 0;
+  color: #8b949e;
+  font-size: 16px;
+  cursor: pointer;
+}
+
+.modalBody {
+  padding: 20px;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.settingGroup {
+  border-bottom: 1px solid #1a222f;
+  padding-bottom: 16px;
+}
+
+.settingGroup:last-child {
+  border: 0;
+  padding-bottom: 0;
+}
+
+.settingGroup h4 {
+  margin: 0 0 10px 0;
+  font-size: 13px;
+  color: #38bdf8;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.settingRow {
+  display: flex;
+  gap: 16px;
+  flex-wrap: wrap;
+}
+
+.settingRow label {
+  flex: 1 1 120px;
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 11px;
+}
+
+.settingRow input[type="number"] {
+  height: 32px;
+  background: #090d12;
+  border: 1px solid #26313d;
+  border-radius: 6px;
+  padding: 0 8px;
+  color: #e6edf3;
+}
+
+.settingRow input[type="color"] {
+  height: 32px;
+  width: 100%;
+  border: 1px solid #26313d;
+  border-radius: 6px;
+  background: transparent;
+  padding: 2px;
+  cursor: pointer;
+}
+
+.modalFooter {
+  padding: 16px 20px;
+  border-top: 1px solid #26313d;
+  display: flex;
+  justify-content: flex-end;
+  gap: 12px;
+}
+
+.modalFooter button {
+  padding: 8px 16px;
+  border-radius: 6px;
+  font-size: 12px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.15s;
+}
+
+.modalFooter .secondaryBtn {
+  background: transparent;
+  border: 1px solid #26313d;
+  color: #8b949e;
+}
+
+.modalFooter .secondaryBtn:hover {
+  background: #151d27;
+  color: #e6edf3;
+}
+
+.modalFooter .primaryBtn {
+  background: #38bdf8;
+  border: 0;
+  color: #090d12;
+  font-weight: 700;
+}
+
+.modalFooter .primaryBtn:hover {
+  background: #7dd3fc;
+}
+
+/* Gear button styling */
+.gearBtn {
+  min-height: 30px;
+  border: 1px solid #26313d;
+  border-radius: 6px;
+  background: #0f151d;
+  color: #8b949e;
+  padding: 0 8px;
+  cursor: pointer;
+  font-size: 14px;
+  transition: all 0.15s;
+}
+
+.gearBtn:hover {
+  border-color: #657386;
+  color: #e6edf3;
+}
+
