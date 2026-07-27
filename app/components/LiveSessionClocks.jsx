@@ -12,7 +12,7 @@ const SESSIONS = [
 const SESS_TR = {
   en: {
     title: "Live Market Trading Sessions",
-    utcTime: "UTC Time",
+    utcTime: "Morocco Time (UTC+1)",
     active: "ACTIVE",
     upcoming: "UPCOMING",
     endsIn: "Ends in",
@@ -24,7 +24,7 @@ const SESS_TR = {
   },
   fr: {
     title: "Sessions de Trading en Direct",
-    utcTime: "Heure UTC",
+    utcTime: "Heure du Maroc (UTC+1)",
     active: "ACTIF",
     upcoming: "À VENIR",
     endsIn: "Se termine dans",
@@ -36,7 +36,7 @@ const SESS_TR = {
   },
   ar: {
     title: "جلسات التداول الحية في السوق",
-    utcTime: "توقيت UTC",
+    utcTime: "توقيت المغرب (UTC+1)",
     active: "نشط",
     upcoming: "قادم",
     endsIn: "ينتهي في",
@@ -134,7 +134,7 @@ export default function LiveSessionClocks({ lang = "en" }) {
           <span style={{ color: "#888893", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>{trans.title}</span>
         </div>
         <div suppressHydrationWarning style={{ fontSize: "12px", fontWeight: "700", color: "#a3e635", background: "#050506", padding: "4px 10px", borderRadius: "6px", border: "1px solid #222225" }}>
-          🌐 {trans.utcTime}: {mounted ? now.toUTCString().slice(17, 25) : "--:--:--"}
+          🇲🇦 {trans.utcTime}: {mounted ? new Date(now.getTime() + 3600000).toUTCString().slice(17, 25) : "--:--:--"}
         </div>
       </div>
 
