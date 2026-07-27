@@ -2,6 +2,57 @@
 
 import { useState, useEffect, useRef } from "react";
 
+const LOCAL_KNOW = {
+  en: {
+    backToJournal: "← Back to Backtest Journal",
+    pageTitle: "📚 Pro Trader Knowledge & Strategy Master Hub",
+    pageDesc: "Improve your system. Learn structures, psychological control, macro correlations, and save personal rules.",
+    close: "Close Hub",
+    tabs: {
+      strategies: "📖 Pro Strategies Encyclopedia",
+      checklist: "✅ Strategy-Specific Pre-Trade Checklist",
+      chartsetups: "📐 14 Chart Patterns & Setups Guide",
+      psychology: "🧠 Master Psychology & Wisdom",
+      fundamental: "📰 Fundamental News & Liquidity Impact",
+      indicators: "📊 Markets & Key Correlation Matrix",
+      candlesticks: "🕯️ Candlesticks & Meanings",
+      custom: "📝 Personal Notes"
+    }
+  },
+  fr: {
+    backToJournal: "← Retour au journal de backtest",
+    pageTitle: "📚 Bibliothèque du Pro Trader & Stratégies",
+    pageDesc: "Améliorez votre système. Apprenez les structures, la psychologie, les corrélations et enregistrez vos règles.",
+    close: "Fermer la Bibliothèque",
+    tabs: {
+      strategies: "📖 Encyclopédie des Stratégies Pro",
+      checklist: "✅ Liste de Contrôle Pré-Transaction",
+      chartsetups: "📐 Guide des 14 Modèles de Graphiques",
+      psychology: "🧠 Maîtrise de la Psychologie",
+      fundamental: "📰 Nouvelles Fondamentales & Impact",
+      indicators: "📊 Matrice de Corrélation des Marchés",
+      candlesticks: "🕯️ Bougies & Significations",
+      custom: "📝 Notes Personnelles"
+    }
+  },
+  ar: {
+    backToJournal: "← العودة إلى مجلة الاختبار الخلفي",
+    pageTitle: "📚 مركز المعرفة واستراتيجيات التداول الاحترافية",
+    pageDesc: "حسن نظامك. تعلم الهياكل، التحكم النفسي، الارتباطات الماكرو واحفظ قواعدك الشخصية.",
+    close: "إغلاق المركز",
+    tabs: {
+      strategies: "📖 موسوعة استراتيجيات التداول الاحترافية",
+      checklist: "✅ قائمة التحقق قبل فتح الصفقة",
+      chartsetups: "📐 دليل 14 نمطاً وتنسيقاً للرسم البياني",
+      psychology: "🧠 السيطرة النفسية وحكمة التداول",
+      fundamental: "📰 الأخبار الأساسية وتأثير السيولة",
+      indicators: "📊 مصفوفة ارتباط الأسواق الرئيسية",
+      candlesticks: "🕯️ الشموع اليابانية ومعانيها",
+      custom: "📝 الملاحظات الشخصية"
+    }
+  }
+};
+
 // Candlestick Icon Helper
 function CandleIcon({ type, name = "" }) {
   const isBull = type === "bullish";
@@ -1146,11 +1197,21 @@ const CANDLESTICK_PATTERNS_GUIDE = [
   }
 ];
 
-export default function KnowledgeModal({ isOpen, onClose, mode = "modal" }) {
+export default function KnowledgeModal({ isOpen, onClose, mode = "modal", lang = "en" }) {
   const isPageMode = mode === "page";
   const [activeTab, setActiveTab] = useState("strategies");
   const [personalNotes, setPersonalNotes] = useState([]);
   const tabsNavRef = useRef(null);
+
+  const [langState, setLangState] = useState(lang);
+  useEffect(() => {
+    if (typeof window !== "undefined") {
+      const savedLang = localStorage.getItem("preferred_language");
+      if (savedLang) {
+        setLangState(savedLang);
+      }
+    }
+  }, [lang]);
 
   // Strategy Checklist selection state
   const [selectedStrategyKey, setSelectedStrategyKey] = useState("heikinAshi");
@@ -1218,44 +1279,46 @@ export default function KnowledgeModal({ isOpen, onClose, mode = "modal" }) {
   const currentScore = currentStratData.items.filter((item) => currentCheckedMap[item.key]).length;
   const isStrategyReady = currentScore >= currentStratData.items.length - 1;
 
+  const l = LOCAL_KNOW[langState] || LOCAL_KNOW.en;
+
   const tabs = [
-    { key: "strategies", label: "📖 Pro Strategies Encyclopedia" },
-    { key: "checklist", label: "✅ Strategy-Specific Pre-Trade Checklist" },
-    { key: "chartsetups", label: "📐 14 Chart Patterns & Setups Guide" },
-    { key: "psychology", label: "🧠 Master Psychology & Wisdom" },
-    { key: "fundamental", label: "📰 Fundamental News & Liquidity Impact" },
-    { key: "indicators", label: "📊 Markets & Key Correlation Matrix" },
-    { key: "candlesticks", label: "🕯️ Candlesticks & Meanings" },
-    { key: "custom", label: `📝 Personal Notes (${personalNotes.length})` },
+    { key: "strategies", label: l.tabs.strategies },
+    { key: "checklist", label: l.tabs.checklist },
+    { key: "chartsetups", label: l.tabs.chartsetups },
+    { key: "psychology", label: l.tabs.psychology },
+    { key: "fundamental", label: l.tabs.fundamental },
+    { key: "indicators", label: l.tabs.indicators },
+    { key: "candlesticks", label: l.tabs.candlesticks },
+    { key: "custom", label: `${l.tabs.custom} (${personalNotes.length})` },
   ];
 
   // Page mode: full-page layout, no overlay
   const outerStyle = isPageMode
-    ? { background: "#090d12", minHeight: "100vh", display: "flex", flexDirection: "column" }
-    : { position: "fixed", inset: 0, background: "rgba(9,13,18,0.92)", backdropFilter: "blur(12px)", zIndex: 10000, display: "grid", placeItems: "center", padding: "20px" };
+    ? { background: "#050506", minHeight: "100vh", display: "flex", flexDirection: "column" }
+    : { position: "fixed", inset: 0, background: "rgba(5,5,6,0.92)", backdropFilter: "blur(12px)", zIndex: 10000, display: "grid", placeItems: "center", padding: "20px" };
 
   const innerStyle = isPageMode
-    ? { background: "#0d1117", flex: 1, display: "flex", flexDirection: "column", overflow: "visible" }
-    : { background: "#0d1117", border: "1px solid #21262d", borderRadius: "16px", width: "100%", maxWidth: "1180px", maxHeight: "94vh", overflow: "hidden", display: "grid", gridTemplateRows: "auto auto 1fr", boxShadow: "0 25px 50px rgba(0,0,0,0.7)" };
+    ? { background: "#09090b", flex: 1, display: "flex", flexDirection: "column", overflow: "visible" }
+    : { background: "#09090b", border: "1px solid #222225", borderRadius: "16px", width: "100%", maxWidth: "1180px", maxHeight: "94vh", overflow: "hidden", display: "grid", gridTemplateRows: "auto auto 1fr", boxShadow: "0 25px 50px rgba(0,0,0,0.7)" };
 
   return (
     <div style={outerStyle} onClick={isPageMode ? undefined : onClose}>
       <div onClick={isPageMode ? undefined : (e) => e.stopPropagation()} style={innerStyle}>
         
         {/* Header */}
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: "1px solid #21262d", ...(isPageMode ? { position: "sticky", top: 0, zIndex: 100, background: "#0d1117" } : {}) }}>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", padding: "20px 24px", borderBottom: "1px solid #222225", ...(isPageMode ? { position: "sticky", top: 0, zIndex: 100, background: "#09090b" } : {}) }}>
           <div>
-            <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#e6edf3", display: "flex", alignItems: "center", gap: "8px" }}>
-              <span>📚</span> Pro Trader Knowledge &amp; Strategy Master Hub
+            <h2 style={{ margin: 0, fontSize: "18px", fontWeight: "800", color: "#ffffff", display: "flex", alignItems: "center", gap: "8px" }}>
+              <span>📚</span> {l.pageTitle}
             </h2>
-            <p style={{ margin: "4px 0 0", color: "#8b949e", fontSize: "12px" }}>Trader Psychology &amp; Wisdom, Macro News Impact, Correlations, 14 Chart Patterns &amp; Strategy Checklists.</p>
+            <p style={{ margin: "4px 0 0", color: "#888893", fontSize: "12px" }}>{l.pageDesc}</p>
           </div>
           {isPageMode ? (
-            <a href="/" style={{ background: "#161b22", border: "1px solid #30363d", color: "#38bdf8", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: "700", textDecoration: "none", display: "flex", alignItems: "center", gap: "6px", flexShrink: 0 }}>
-              ← Back to Dashboard
+            <a href="/" style={{ background: "#111113", border: "1px solid #222225", color: "#a3e635", padding: "8px 16px", borderRadius: "8px", fontSize: "13px", fontWeight: "700", textDecoration: "none", display: "flex", alignItems: "center", gap: "6px", flexShrink: 0, boxShadow: "0 2px 8px rgba(163,230,53,0.05)" }}>
+              {l.backToJournal}
             </a>
           ) : (
-            <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#8b949e", fontSize: "20px", cursor: "pointer" }}>✕</button>
+            <button onClick={onClose} style={{ background: "transparent", border: "none", color: "#888893", fontSize: "20px", cursor: "pointer" }}>✕</button>
           )}
         </div>
 

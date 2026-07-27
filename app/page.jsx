@@ -1323,6 +1323,7 @@ export default function Home() {
       <KnowledgeModal
         isOpen={isKnowledgeOpen}
         onClose={() => setIsKnowledgeOpen(false)}
+        lang={lang}
       />
 
       {/* Add / Edit Trade Modal */}
