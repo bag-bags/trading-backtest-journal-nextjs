@@ -67,7 +67,18 @@ export const translations = {
     twelveDataKey: "TwelveData Key",
     twelveDataPlaceholder: "Default: .env.local (paste key to override)",
     binanceDesc: "Binance public klines, no API key needed.",
-    twelveDataDesc: "TwelveData time series, good for Gold and Forex with a free key."
+    twelveDataDesc: "TwelveData time series, good for Gold and Forex with a free key.",
+    backToJournal: "← Back to Backtest Journal",
+    analysisPageTitle: "📊 Deep Trade Analysis & Market Setups Engine",
+    analysisPageDesc: "Full Page View • Multi-Timeframe SMC Structures, Candlesticks & Macro News Correlation.",
+    tradesAnalyzed: "⚡ Dedicated Page • {count} Trades Analyzed",
+    calendarPageTitle: "📅 Pro Trading Calendar & Performance Journal",
+    calendarPageDesc: "Full Page View • Interactive Monthly Heatmap, Day Details & Market Session Countdowns.",
+    tradesSynchronized: "⚡ Dedicated Page • {count} Trades Synchronized",
+    standardCandles: "🕯️ Standard",
+    heikinAshiCandles: "📊 Heikin Ashi",
+    autoFit: "Auto Fit",
+    focusTrade: "Focus Trade"
   },
   fr: {
     chartSettings: "Configuration du graphique",
@@ -79,7 +90,7 @@ export const translations = {
     savedJournals: "Journaux enregistrés",
     noSavedFiles: "Aucun fichier de backtest enregistré.",
     importTrades: "Importer les transactions CSV",
-    acceptedFormat: "Accepté: virgule, point-virgule, tabulation, CSV entre guillemets, en-têtes style courtier.",
+    acceptedFormat: "Accepté: virgule, point-vigule, tabulation, CSV entre guillemets, en-têtes style courtier.",
     trades: "Transactions",
     addTrade: "Ajouter transaction",
     addTradeTitle: "➕ Ajouter transaction manuellement",
@@ -137,7 +148,18 @@ export const translations = {
     twelveDataKey: "Clé TwelveData",
     twelveDataPlaceholder: "Par défaut: .env.local (coller la clé pour remplacer)",
     binanceDesc: "Données publiques Binance, aucune clé API requise.",
-    twelveDataDesc: "Séries TwelveData, adaptées pour l'Or et le Forex avec clé gratuite."
+    twelveDataDesc: "Séries TwelveData, adaptées pour l'Or et le Forex avec clé gratuite.",
+    backToJournal: "← Retour au journal de backtest",
+    analysisPageTitle: "📊 Moteur d'Analyse Approfondie & Configurations",
+    analysisPageDesc: "Vue Pleine Page • Structures SMC Multi-Timeframe, Bougies & Corrélation Macro.",
+    tradesAnalyzed: "⚡ Page Dédiée • {count} Transactions Analysées",
+    calendarPageTitle: "📅 Calendrier de Trading Pro & Journal",
+    calendarPageDesc: "Vue Pleine Page • Carte Thermique Mensuelle, Détails du Jour & Comptes à Rebours.",
+    tradesSynchronized: "⚡ Page Dédiée • {count} Transactions Synchronisées",
+    standardCandles: "🕯️ Standard",
+    heikinAshiCandles: "📊 Heikin Ashi",
+    autoFit: "Ajustement Auto",
+    focusTrade: "Cibler la Transaction"
   },
   ar: {
     chartSettings: "إعدادات الرسم البياني",
@@ -207,6 +229,17 @@ export const translations = {
     twelveDataKey: "مفتاح TwelveData",
     twelveDataPlaceholder: "افتراضي: .env.local (الصق المفتاح للتعديل)",
     binanceDesc: "بيانات بينانس العامة، لا يلزم مفتاح API.",
-    twelveDataDesc: "بيانات TwelveData، مناسبة للذهب والفوركس بمفتاح مجاني."
+    twelveDataDesc: "بيانات TwelveData، مناسبة للذهب والفوركس بمفتاح مجاني.",
+    backToJournal: "← العودة إلى مجلة الاختبار الخلفي",
+    analysisPageTitle: "📊 محرك التحليل العميق للصفقات وإعدادات السوق",
+    analysisPageDesc: "عرض كامل الصفحة • هياكل SMC متعددة الأطر الزمنية، الشموع والارتباط بالأخبار الاقتصادية.",
+    tradesAnalyzed: "⚡ صفحة مخصصة • تم تحليل {count} صفقة",
+    calendarPageTitle: "📅 تقويم التداول الاحترافي ومجلة الأداء",
+    calendarPageDesc: "عرض كامل الصفحة • خريطة حرارية شهرية تفاعلية، تفاصيل اليوم والعد التنازلي لجلسات السوق.",
+    tradesSynchronized: "⚡ صفحة مخصصة • تم مزامنة {count} صفقة",
+    standardCandles: "🕯️ قياسي",
+    heikinAshiCandles: "📊 هيكين آشي",
+    autoFit: "ملاءمة تلقائية",
+    focusTrade: "تركيز الصفقة"
   }
 };

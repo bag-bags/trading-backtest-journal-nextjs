@@ -9,6 +9,7 @@ import {
   pointsNeeded, createDrawing, renderDrawings, findDrawingNear, findControlPointNear, duplicateDrawing
 } from "./drawings";
 import IndicatorSettingsModal from "./IndicatorSettingsModal";
+import { translations } from "../translations";
 import "./chart.css";
 
 const INTERVALS = ["1m", "5m", "15m", "1h", "1d", "1w"];
@@ -45,6 +46,24 @@ function ChartContent() {
   const chartRef = useRef(null);
   const overlayRef = useRef(null);
   const seriesMapRef = useRef({});
+
+  const [lang, setLang] = useState("en");
+
+  useEffect(() => {
+    const savedLang = localStorage.getItem("preferred_language");
+    if (savedLang) {
+      setLang(savedLang);
+    }
+  }, []);
+
+  useEffect(() => {
+    if (typeof document !== "undefined" && document.documentElement) {
+      document.documentElement.dir = lang === "ar" ? "rtl" : "ltr";
+      document.documentElement.lang = lang;
+    }
+  }, [lang]);
+
+  const t = translations[lang] || translations.en;
 
   const [interval, setIntervalState] = useState(searchParams.get("interval") || "1m");
   const [candles, setCandles] = useState([]);
@@ -728,7 +747,7 @@ function ChartContent() {
     <div className="chartPage">
       {/* Top Bar */}
       <div className="chartTopBar">
-        <button className="backBtn" onClick={() => router.back()} title="Back to journal">←</button>
+        <button className="backBtn" onClick={() => router.back()} title={t.backToJournal || "Back to journal"}>←</button>
         <div className="symbolInfo">
           <h1>{symbol}</h1>
           <span>{interval}</span>
@@ -750,14 +769,14 @@ function ChartContent() {
               onClick={() => setCandleType("standard")}
               title="Standard Candlesticks"
             >
-              🕯️ Standard
+              {t.standardCandles || "🕯️ Standard"}
             </button>
             <button
               className={candleType === "heikin_ashi" ? "active" : ""}
               onClick={() => setCandleType("heikin_ashi")}
               title="Heikin Ashi Candlesticks"
             >
-              📊 Heikin Ashi
+              {t.heikinAshiCandles || "📊 Heikin Ashi"}
             </button>
           </div>
           <div className="divider" />
@@ -772,14 +791,14 @@ function ChartContent() {
               </button>
             ))}
             <button className="gearBtn" onClick={() => setIsSettingsOpen(true)} title="Indicator Settings">
-              ⚙️ Settings
+              ⚙️ {t.chartSettings || "Settings"}
             </button>
           </div>
           <div className="divider" />
           <div className="intervalBtns">
-            <button onClick={handleAutoFit} title="Fit all candles on chart">Auto Fit</button>
+            <button onClick={handleAutoFit} title="Fit all candles on chart">{t.autoFit || "Auto Fit"}</button>
             {trade && (
-              <button onClick={handleFocusTrade} title="Focus on buy/sell entry/exit range">Focus Trade</button>
+              <button onClick={handleFocusTrade} title="Focus on buy/sell entry/exit range">{t.focusTrade || "Focus Trade"}</button>
             )}
           </div>
         </div>
