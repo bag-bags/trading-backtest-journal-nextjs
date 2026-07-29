@@ -197,9 +197,13 @@ export default function Home() {
         return;
       }
 
+      // 0. Strip hidden Unicode directional formatting/isolate characters (e.g. \u2066, \u2069, \u200e)
+      // that MetaTrader copies, which cause parseFloat to return NaN
+      let cleaned = clipboardText.replace(/[\u200e\u200f\u2066\u2067\u2068\u2069]/g, "");
+
       // 1. Remove thousands separators from numbers (e.g. 64,318.42 -> 64318.42)
       // so that they don't break the comma-separated splitting structure.
-      let cleaned = clipboardText.replace(/(\d),(\d{3})/g, "$1$2");
+      cleaned = cleaned.replace(/(\d),(\d{3})/g, "$1$2");
 
       // 2. Convert newlines (\r, \n), tabs (\t), or big spaces (2 or more spaces) to commas
       cleaned = cleaned
