@@ -86,7 +86,7 @@ export default function Home() {
       if (activeFileName) {
         const headers = "Symbol,Type,Volume,Open Price,Close Price,Open Time,Close Time,Profit\n";
         const rows = updatedTrades.map((t) =>
-          `${t.symbol},${t.type},${t.volume},${t.openPrice},${t.closePrice},${formatDate(t.openTime)},${formatDate(t.closeTime)},${t.profit}`
+          `${t.symbol},${t.type},${t.volume},${t.openPrice},${t.closePrice},${formatCsvDate(t.openTime)},${formatCsvDate(t.closeTime)},${t.profit}`
         ).join("\n");
         const rawContent = headers + rows;
         const saved = JSON.parse(localStorage.getItem("journal_files") || "[]");
@@ -138,7 +138,7 @@ export default function Home() {
             const savedFiles = JSON.parse(localStorage.getItem("journal_files") || "[]");
             let manualFile = savedFiles.find(f => f.name === activeName);
             const headers = "Symbol,Type,Volume,Open Price,Close Price,Open Time,Close Time,Profit\n";
-            const row = `${newTrade.symbol},${newTrade.type},${newTrade.volume},${newTrade.openPrice},${newTrade.closePrice},${formatDate(newTrade.openTime)},${formatDate(newTrade.closeTime)},${newTrade.profit}\n`;
+            const row = `${newTrade.symbol},${newTrade.type},${newTrade.volume},${newTrade.openPrice},${newTrade.closePrice},${formatCsvDate(newTrade.openTime)},${formatCsvDate(newTrade.closeTime)},${newTrade.profit}\n`;
             
             if (!manualFile) {
               manualFile = { name: activeName, content: headers + row };
@@ -1786,6 +1786,19 @@ function money(value) {
 
 function price(value) {
   return Math.abs(value) >= 100 ? value.toFixed(2) : value.toFixed(5).replace(/0+$/, "").replace(/\.$/, "");
+}
+
+function formatCsvDate(date) {
+  if (!date) return "";
+  const d = new Date(date);
+  if (isNaN(d.getTime())) return "";
+  const pad = (n) => String(n).padStart(2, "0");
+  const yyyy = d.getFullYear();
+  const mm = pad(d.getMonth() + 1);
+  const dd = pad(d.getDate());
+  const hh = pad(d.getHours());
+  const min = pad(d.getMinutes());
+  return `${yyyy}-${mm}-${dd} ${hh}:${min}`;
 }
 
 function formatDate(date) {
