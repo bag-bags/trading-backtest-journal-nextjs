@@ -197,8 +197,12 @@ export default function Home() {
         return;
       }
 
-      // Convert newlines (\r, \n), tabs (\t), or big spaces (2 or more spaces) to commas
-      let cleaned = clipboardText
+      // 1. Remove thousands separators from numbers (e.g. 64,318.42 -> 64318.42)
+      // so that they don't break the comma-separated splitting structure.
+      let cleaned = clipboardText.replace(/(\d),(\d{3})/g, "$1$2");
+
+      // 2. Convert newlines (\r, \n), tabs (\t), or big spaces (2 or more spaces) to commas
+      cleaned = cleaned
         .replace(/[\r\n]+/g, ",")
         .replace(/\t+/g, ",")
         .replace(/\s{2,}/g, ",")
@@ -244,7 +248,7 @@ export default function Home() {
               throw new Error("Incomplete trade block.");
             }
 
-            const symbol = current.replace("/", "").toUpperCase();
+            const symbol = current.replace(/[^a-zA-Z0-9]/g, "").toUpperCase();
             const type = next.toUpperCase();
             
             const volume = parseFloat(parts[k + 2]);
