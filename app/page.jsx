@@ -10,7 +10,6 @@ import ProCalendarModal from "./components/ProCalendarModal";
 import KnowledgeModal from "./components/KnowledgeModal";
 import AnalysisModal from "./components/AnalysisModal";
 import MiniChartsGrid from "./components/MiniChartsGrid";
-import PasteTradesModal from "./components/PasteTradesModal";
 import { translations } from "./translations";
 
 const defaultTrade = {
@@ -60,7 +59,6 @@ export default function Home() {
   const [isKnowledgeOpen, setIsKnowledgeOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [isAddTradeOpen, setIsAddTradeOpen] = useState(false);
-  const [isPasteTradesOpen, setIsPasteTradesOpen] = useState(false);
   const [renamingFileName, setRenamingFileName] = useState("");
   const [renameInputVal, setRenameInputVal] = useState("");
   const [lang, setLang] = useState("en");
@@ -190,10 +188,131 @@ export default function Home() {
     }
   };
 
-  const handleBulkImportTrades = async (importedTrades) => {
-    const updated = [...importedTrades, ...trades];
-    setTrades(updated);
-    await saveTradesToStorage(updated);
+  const handlePasteClipboardDirect = async () => {
+    setError("");
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      if (!clipboardText.trim()) {
+        setError("Clipboard is empty.");
+        return;
+      }
+
+      // Convert newlines (\r, \n), tabs (\t), or big spaces (2 or more spaces) to commas
+      let cleaned = clipboardText
+        .replace(/[\r\n]+/g, ",")
+        .replace(/\t+/g, ",")
+        .replace(/\s{2,}/g, ",")
+        .trim();
+
+      // Clean up consecutive commas
+      cleaned = cleaned.replace(/,+/g, ",");
+
+      // Parse this as a comma-separated string
+      const parts = cleaned.split(",").map(p => p.trim()).filter(Boolean);
+
+      if (parts.length < 14) {
+        throw new Error("Invalid clipboard layout. Expected at least 14 fields.");
+      }
+
+      const parseDateHelper = (str) => {
+        const d = new Date(str);
+        if (isNaN(d.getTime())) {
+          throw new Error(`Invalid date: "${str}".`);
+        }
+        return d;
+      };
+
+      const validTrades = [];
+      let k = 0;
+      while (k < parts.length) {
+        const current = parts[k];
+        
+        // Skip header fields
+        if (
+          current.toLowerCase().includes("symbol") ||
+          current.toLowerCase().includes("type") ||
+          current.toLowerCase().includes("volume")
+        ) {
+          k++;
+          continue;
+        }
+
+        const next = parts[k + 1];
+        if (current && next && (next.toUpperCase() === "BUY" || next.toUpperCase() === "SELL")) {
+          try {
+            if (k + 12 >= parts.length) {
+              throw new Error("Incomplete trade block.");
+            }
+
+            const symbol = current.replace("/", "").toUpperCase();
+            const type = next.toUpperCase();
+            
+            const volume = parseFloat(parts[k + 2]);
+            if (isNaN(volume) || volume <= 0) {
+              throw new Error(`Invalid volume: "${parts[k + 2]}".`);
+            }
+
+            const openPrice = parseFloat(parts[k + 3].replace(/,/g, ""));
+            const closePrice = parseFloat(parts[k + 4].replace(/,/g, ""));
+            if (isNaN(openPrice) || isNaN(closePrice)) {
+              throw new Error(`Invalid prices: Open="${parts[k + 3]}", Close="${parts[k + 4]}".`);
+            }
+
+            // Dates contain a single comma and were split into two parts: index k+8 & k+9, index k+10 & k+11
+            const openTime = parseDateHelper(`${parts[k + 8]}, ${parts[k + 9]}`);
+            const closeTime = parseDateHelper(`${parts[k + 10]}, ${parts[k + 11]}`);
+
+            // Swap is at k+12
+            // Reason can be at k+13, profit at k+14, or profit at k+13
+            let profitStr = parts[k + 13];
+            let increment = 14;
+
+            const tempProfit = parseFloat(profitStr.replace(/\+/g, "").replace(/,/g, ""));
+            if (isNaN(tempProfit)) {
+              if (k + 14 >= parts.length) {
+                throw new Error("Missing profit value.");
+              }
+              profitStr = parts[k + 14];
+              increment = 15;
+            }
+
+            const profit = parseFloat(profitStr.replace(/\+/g, "").replace(/,/g, ""));
+            if (isNaN(profit)) {
+              throw new Error(`Invalid profit value: "${profitStr}".`);
+            }
+
+            validTrades.push({
+              symbol,
+              type,
+              volume,
+              openPrice,
+              closePrice,
+              openTime,
+              closeTime,
+              profit
+            });
+
+            k += increment;
+          } catch (err) {
+            throw new Error(`Trade block starting with "${current}": ${err.message}`);
+          }
+        } else {
+          k++;
+        }
+      }
+
+      if (validTrades.length > 0) {
+        const updated = [...validTrades, ...trades];
+        setTrades(updated);
+        await saveTradesToStorage(updated);
+        setImportMessage(`Imported ${validTrades.length} trade(s) from clipboard.`);
+        setError("");
+      } else {
+        throw new Error("No valid trades found in clipboard.");
+      }
+    } catch (err) {
+      setError(`Clipboard Import Error: ${err.message}`);
+    }
   };
 
   const handleWheel = (e) => {
@@ -990,7 +1109,7 @@ export default function Home() {
                 ➕ {t.addTrade}
               </button>
               <button
-                onClick={() => setIsPasteTradesOpen(true)}
+                onClick={handlePasteClipboardDirect}
                 style={{
                   background: "linear-gradient(135deg, #38bdf8, #0284c7)",
                   border: "none",
@@ -1004,7 +1123,7 @@ export default function Home() {
                   boxShadow: "0 2px 8px rgba(56, 189, 248, 0.3)"
                 }}
               >
-                📝 Paste Trades
+                📋 Paste Clipboard
               </button>
               <button 
                 onClick={() => setIsFullscreenTrades(!isFullscreenTrades)}
@@ -1320,12 +1439,6 @@ export default function Home() {
         />
       )}
 
-      {/* Paste text trades modal */}
-      <PasteTradesModal
-        isOpen={isPasteTradesOpen}
-        onClose={() => setIsPasteTradesOpen(false)}
-        onImport={handleBulkImportTrades}
-      />
     </main>
   );
 }
