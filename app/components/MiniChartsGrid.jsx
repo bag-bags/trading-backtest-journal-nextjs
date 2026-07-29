@@ -426,15 +426,24 @@ export default function MiniChartsGrid() {
             <span style={liveIndicatorStyle} className="pulse-indicator">● SEC/MIN</span>
           </div>
           <div style={tabContainerStyle}>
-            {Object.keys(FOREX_PAIRS).map(p => (
-              <button
-                key={p}
-                onClick={() => setSelectedForexPair(p)}
-                style={selectedForexPair === p ? activeTabStyle : tabStyle}
-              >
-                {p.split("/")[0]}
-              </button>
-            ))}
+            {Object.keys(FOREX_PAIRS).map(p => {
+              const dir = forexDirections[p];
+              const color = dir === "up" ? "var(--good)" : dir === "down" ? "var(--bad)" : "var(--muted)";
+              return (
+                <button
+                  key={p}
+                  onClick={() => setSelectedForexPair(p)}
+                  style={{
+                    ...(selectedForexPair === p ? activeTabStyle : tabStyle),
+                    color: selectedForexPair === p ? "#ffffff" : color,
+                    borderBottom: selectedForexPair === p ? `2px solid ${color}` : "none",
+                    transition: "all 0.15s ease"
+                  }}
+                >
+                  {p.split("/")[0]}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -454,7 +463,16 @@ export default function MiniChartsGrid() {
               {forexDirections[selectedForexPair] === "up" ? "▲ TICK UP" : forexDirections[selectedForexPair] === "down" ? "▼ TICK DOWN" : "■ FLAT"}
             </span>
           </div>
-          <span style={{ fontSize: "11px", color: "var(--muted)", fontWeight: "600" }}>{selectedForexPair}</span>
+          <span
+            style={{
+              fontSize: "11px",
+              color: forexDirections[selectedForexPair] === "up" ? "var(--good)" : forexDirections[selectedForexPair] === "down" ? "var(--bad)" : "var(--muted)",
+              fontWeight: "800",
+              transition: "color 0.15s ease"
+            }}
+          >
+            {selectedForexPair}
+          </span>
         </div>
 
         {/* UPGRADED Area Chart with Gradient, Grid and Labels */}
