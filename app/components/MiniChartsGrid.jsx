@@ -170,7 +170,9 @@ export default function MiniChartsGrid() {
 
   // Chart 3: Interest Rates
   const [selectedInterestCountry, setSelectedInterestCountry] = useState("US");
-  const [interestLiveOffset, setInterestLiveOffset] = useState(0);
+  const [interestPrices, setInterestPrices] = useState({ US: 4.50, EU: 2.75, UK: 4.25 });
+  const [interestDirections, setInterestDirections] = useState({ US: "flat", EU: "flat", UK: "flat" });
+  const [interestHistory, setInterestHistory] = useState({});
 
   // Chart 4: Economic Calendar News Feed
   const [newsFilterCountry, setNewsFilterCountry] = useState("ALL");
@@ -191,6 +193,7 @@ export default function MiniChartsGrid() {
     const tfSec = TIMEFRAME_SECONDS[forexTimeframe] || 30;
     const volFactor = Math.sqrt(tfSec);
 
+    // Forex Initial History
     Object.keys(FOREX_PAIRS).forEach(pair => {
       const conf = FOREX_PAIRS[pair];
       const startPrice = forexPrices[pair] || conf.base;
@@ -204,7 +207,21 @@ export default function MiniChartsGrid() {
       nextHistory[pair] = hist;
     });
 
+    // Interest Rates Initial History
+    Object.keys(INTEREST_RATE_DATA).forEach(c => {
+      const baseRate = INTEREST_RATE_DATA[c].history[INTEREST_RATE_DATA[c].history.length - 1].rate;
+      const hist = [];
+      let tempRate = baseRate - (Math.random() - 0.5) * 0.05 * volFactor;
+      
+      for (let i = 0; i < 60; i++) {
+        tempRate += (Math.random() - 0.5) * 0.01 * volFactor;
+        hist.push(parseFloat(tempRate.toFixed(2)));
+      }
+      nextHistory[c] = hist;
+    });
+
     setForexHistory(nextHistory);
+    setInterestHistory(nextHistory);
     setSecondsCounter(0);
   }, [forexTimeframe]);
 
@@ -213,6 +230,7 @@ export default function MiniChartsGrid() {
     const interval = setInterval(() => {
       setSecondsCounter(prev => prev + 1);
 
+      // Forex Tickers
       setForexPrices(prevPrices => {
         const nextPrices = { ...prevPrices };
         const nextDirs = {};
@@ -222,7 +240,6 @@ export default function MiniChartsGrid() {
         Object.keys(FOREX_PAIRS).forEach(pair => {
           const conf = FOREX_PAIRS[pair];
           const curr = prevPrices[pair] || conf.base;
-          // Volatility scales with selected timeframe
           const change = (Math.random() - 0.5) * conf.step * 1.5 * Math.sqrt(tfSec);
           const next = parseFloat((curr + change).toFixed(conf.decimals));
 
@@ -231,8 +248,6 @@ export default function MiniChartsGrid() {
 
           if (nextHist[pair] && nextHist[pair].length > 0) {
             const hist = [...nextHist[pair]];
-            // If timeframe interval is met, push new bar and shift oldest out.
-            // Otherwise, update the last bar with current tick.
             if ((secondsCounter + 1) % tfSec === 0) {
               nextHist[pair] = [...hist.slice(1), next];
             } else {
@@ -247,13 +262,43 @@ export default function MiniChartsGrid() {
         return nextPrices;
       });
 
-      // Minor fluctuations for live values of CPI and Interest Rates
+      // Interest Rate Tickers (fluctuates live like Forex)
+      setInterestPrices(prevPrices => {
+        const nextPrices = { ...prevPrices };
+        const nextDirs = {};
+        const nextHist = { ...interestHistory };
+        const tfSec = TIMEFRAME_SECONDS[forexTimeframe] || 30;
+
+        Object.keys(INTEREST_RATE_DATA).forEach(c => {
+          const curr = prevPrices[c] || 4.50;
+          const change = (Math.random() - 0.5) * 0.005 * Math.sqrt(tfSec);
+          const next = parseFloat((curr + change).toFixed(2));
+
+          nextPrices[c] = next;
+          nextDirs[c] = next > curr ? "up" : next < curr ? "down" : "flat";
+
+          if (nextHist[c] && nextHist[c].length > 0) {
+            const hist = [...nextHist[c]];
+            if ((secondsCounter + 1) % tfSec === 0) {
+              nextHist[c] = [...hist.slice(1), next];
+            } else {
+              hist[hist.length - 1] = next;
+              nextHist[c] = hist;
+            }
+          }
+        });
+
+        setInterestDirections(nextDirs);
+        setInterestHistory(nextHist);
+        return nextPrices;
+      });
+
+      // Minor fluctuations for live values of CPI
       setInflationLiveOffset((Math.random() - 0.5) * 0.02);
-      setInterestLiveOffset((Math.random() - 0.5) * 0.01);
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [forexHistory, forexTimeframe, secondsCounter]);
+  }, [forexHistory, interestHistory, forexTimeframe, secondsCounter]);
 
   const svgWidth = 260;
   const svgHeight = 90;
@@ -285,42 +330,41 @@ export default function MiniChartsGrid() {
 
   // Central Bank Rates Live & Last Month comparisons
   const interestStats = useMemo(() => {
-    const data = INTEREST_RATE_DATA[selectedInterestCountry];
-    const latestBase = data.history[data.history.length - 1].rate;
-    const liveVal = parseFloat((latestBase + interestLiveOffset).toFixed(2));
-    const lastMonth = data.lastMonth;
+    const liveVal = interestPrices[selectedInterestCountry] || 4.50;
+    const lastMonth = INTEREST_RATE_DATA[selectedInterestCountry].lastMonth;
     const diff = parseFloat((liveVal - lastMonth).toFixed(2));
-    return { liveVal, lastMonth, diff };
-  }, [selectedInterestCountry, interestLiveOffset]);
+    const diffPct = parseFloat(((diff / lastMonth) * 100).toFixed(2));
+    return { liveVal, lastMonth, diff, diffPct };
+  }, [selectedInterestCountry, interestPrices]);
 
-  // Stepped chart points for Interest rates
+  // Stepped chart points replaced with rolling live points
   const interestPoints = useMemo(() => {
-    const data = [...INTEREST_RATE_DATA[selectedInterestCountry].history];
-    const min = Math.min(...data.map(d => d.rate)) - 0.5;
-    const max = Math.max(...data.map(d => d.rate)) + 0.5;
-    const range = max - min || 1;
+    const data = interestHistory[selectedInterestCountry] || [];
+    if (!data.length) return [];
+    const min = Math.min(...data);
+    const max = Math.max(...data);
+    const range = max - min || 0.01;
 
-    const points = [];
-    data.forEach((d, index) => {
-      let r = d.rate;
-      if (index === data.length - 1) {
-        r = interestStats.liveVal;
-      }
-      const x = (index / (data.length - 1)) * (svgWidth - 30) + 15;
-      const y = svgHeight - ((r - min) / range) * (svgHeight - 30) - 15;
-      points.push({ x, y, date: d.date, rate: r });
+    return data.map((val, index) => {
+      const x = (index / (data.length - 1)) * (svgWidth - 30) + 10;
+      const y = svgHeight - ((val - min) / range) * (svgHeight - 24) - 16;
+      return { x, y, value: val };
     });
-    return points;
-  }, [selectedInterestCountry, interestStats.liveVal]);
+  }, [selectedInterestCountry, interestHistory]);
 
-  const interestStepPath = useMemo(() => {
+  const interestAreaPath = useMemo(() => {
     if (interestPoints.length < 2) return "";
-    let d = `M ${interestPoints[0].x} ${interestPoints[0].y}`;
-    for (let i = 1; i < interestPoints.length; i++) {
-      d += ` H ${interestPoints[i].x} V ${interestPoints[i].y}`;
-    }
-    return d;
+    const first = interestPoints[0];
+    const last = interestPoints[interestPoints.length - 1];
+    const linePath = interestPoints.reduce((acc, p, i) => `${acc} ${i === 0 ? "M" : "L"} ${p.x} ${p.y}`, "");
+    return `${linePath} L ${last.x} ${svgHeight - 10} L ${first.x} ${svgHeight - 10} Z`;
   }, [interestPoints]);
+
+  const interestMinMax = useMemo(() => {
+    const data = interestHistory[selectedInterestCountry] || [];
+    if (!data.length) return { min: 0, max: 0 };
+    return { min: Math.min(...data), max: Math.max(...data) };
+  }, [selectedInterestCountry, interestHistory]);
 
   // Enhanced Forex Area Chart Coordinates
   const forexPoints = useMemo(() => {
@@ -608,24 +652,33 @@ export default function MiniChartsGrid() {
         </div>
       </div>
 
-      {/* CARD 3: Central Bank Interest Rates */}
+      {/* CARD 3: Central Bank Interest Rates - LIVE AREA CHART */}
       <div className="mini-chart-card" style={cardStyle}>
         <div style={cardHeaderStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <span style={{ fontSize: "16px" }}>🏛️</span>
             <span style={cardTitleStyle}>Interest Rates (FED/ECB/BOE)</span>
-            <span style={liveIndicatorStyle} className="pulse-indicator">● LIVE</span>
+            <span style={liveIndicatorStyle} className="pulse-indicator">● {forexTimeframe.toUpperCase()}</span>
           </div>
           <div style={tabContainerStyle}>
-            {["US", "EU", "UK"].map(c => (
-              <button
-                key={c}
-                onClick={() => setSelectedInterestCountry(c)}
-                style={selectedInterestCountry === c ? activeTabStyle : tabStyle}
-              >
-                {c}
-              </button>
-            ))}
+            {["US", "EU", "UK"].map(c => {
+              const dir = interestDirections[c];
+              const color = dir === "up" ? "var(--good)" : dir === "down" ? "var(--bad)" : "var(--muted)";
+              return (
+                <button
+                  key={c}
+                  onClick={() => setSelectedInterestCountry(c)}
+                  style={{
+                    ...(selectedInterestCountry === c ? activeTabStyle : tabStyle),
+                    color: selectedInterestCountry === c ? "#ffffff" : color,
+                    borderBottom: selectedInterestCountry === c ? `2px solid ${color}` : "none",
+                    transition: "all 0.15s ease"
+                  }}
+                >
+                  {c}
+                </button>
+              );
+            })}
           </div>
         </div>
 
@@ -633,9 +686,18 @@ export default function MiniChartsGrid() {
         <div style={comparisonGridStyle}>
           <div style={statBoxStyle}>
             <span style={statLabelStyle}>Live Rate (t)</span>
-            <strong style={{ fontSize: "17px", color: "#ffffff", display: "flex", alignItems: "center", gap: "4px" }}>
+            <strong
+              style={{
+                fontSize: "17px",
+                color: interestDirections[selectedInterestCountry] === "up" ? "var(--good)" : interestDirections[selectedInterestCountry] === "down" ? "var(--bad)" : "#ffffff",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                transition: "color 0.15s ease"
+              }}
+            >
               {interestStats.liveVal.toFixed(2)}%
-              <span className="pulse-indicator" style={{ color: "#fbbf24", fontSize: "12px" }}>●</span>
+              <span className="pulse-indicator" style={{ fontSize: "12px" }}>●</span>
             </strong>
           </div>
           <div style={statBoxStyle}>
@@ -658,34 +720,118 @@ export default function MiniChartsGrid() {
           </div>
         </div>
 
-        <div style={{ flex: 1, position: "relative", minHeight: "80px", marginTop: "4px" }}>
-          <svg width="100%" height="80" viewBox={`0 0 ${svgWidth} ${svgHeight - 10}`} preserveAspectRatio="none">
-            <line x1="0" y1="15" x2={svgWidth} y2="15" stroke="#1f1f23" strokeDasharray="3,3" />
-            <line x1="0" y1="45" x2={svgWidth} y2="45" stroke="#1f1f23" strokeDasharray="3,3" />
-            <line x1="0" y1="75" x2={svgWidth} y2="75" stroke="#1f1f23" strokeDasharray="3,3" />
+        {/* Dynamic Status bar showing TICK details */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "6px" }}>
+          <div>
+            <span
+              style={{
+                fontSize: "11px",
+                fontWeight: "700",
+                color: interestDirections[selectedInterestCountry] === "up" ? "var(--good)" : interestDirections[selectedInterestCountry] === "down" ? "var(--bad)" : "var(--muted)"
+              }}
+            >
+              {interestDirections[selectedInterestCountry] === "up" ? `▲ TICK UP (+${interestStats.diffPct.toFixed(2)}%)` : interestDirections[selectedInterestCountry] === "down" ? `▼ TICK DOWN (${interestStats.diffPct.toFixed(2)}%)` : "■ FLAT"}
+            </span>
+          </div>
+          <span
+            style={{
+              fontSize: "11px",
+              color: interestDirections[selectedInterestCountry] === "up" ? "var(--good)" : interestDirections[selectedInterestCountry] === "down" ? "var(--bad)" : "var(--muted)",
+              fontWeight: "800",
+              transition: "color 0.15s ease"
+            }}
+          >
+            {selectedInterestCountry === "US" ? "FED Fund Rate" : selectedInterestCountry === "EU" ? "Refinancing Rate" : "BOE Bank Rate"}
+          </span>
+        </div>
 
+        {/* Live Area Chart */}
+        <div style={{ flex: 1, position: "relative", minHeight: "85px" }}>
+          <div style={{ position: "absolute", left: 0, top: 0, fontSize: "8px", color: "var(--muted)" }}>
+            High: {interestMinMax.max.toFixed(2)}%
+          </div>
+          <div style={{ position: "absolute", left: 0, bottom: 12, fontSize: "8px", color: "var(--muted)" }}>
+            Low: {interestMinMax.min.toFixed(2)}%
+          </div>
+
+          <svg width="100%" height="85" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="interestAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#fbbf24" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#fbbf24" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+
+            {/* Grid Lines */}
+            <line x1="10" y1="15" x2={svgWidth - 20} y2="15" stroke="#1c1c22" strokeWidth="0.5" />
+            <line x1="10" y1="45" x2={svgWidth - 20} y2="45" stroke="#1c1c22" strokeWidth="0.5" />
+            <line x1="10" y1="75" x2={svgWidth - 20} y2="75" stroke="#1c1c22" strokeWidth="0.5" />
+
+            {/* Area Path */}
+            {interestPoints.length > 0 && (
+              <path d={interestAreaPath} fill="url(#interestAreaGrad)" />
+            )}
+
+            {/* Line Path */}
             <path
-              d={interestStepPath}
+              d={interestPoints.reduce((acc, p, i) => `${acc} ${i === 0 ? "M" : "L"} ${p.x} ${p.y}`, "")}
               fill="none"
               stroke="#fbbf24"
               strokeWidth="2"
             />
-            {interestPoints.map((p, i) => (
-              <circle
-                key={i}
-                cx={p.x}
-                cy={p.y}
-                r="3.5"
-                fill="#fbbf24"
-                style={{ cursor: "pointer" }}
-                title={`${p.date}: ${p.rate}%`}
-              />
-            ))}
+
+            {/* Live Ticking Horizontal Guideline */}
+            {interestPoints.length > 0 && (
+              <>
+                <line
+                  x1="10"
+                  y1={interestPoints[interestPoints.length - 1].y}
+                  x2={svgWidth - 20}
+                  y2={interestPoints[interestPoints.length - 1].y}
+                  stroke="rgba(251, 191, 36, 0.4)"
+                  strokeDasharray="2,2"
+                  strokeWidth="1"
+                />
+                <circle
+                  cx={interestPoints[interestPoints.length - 1].x}
+                  cy={interestPoints[interestPoints.length - 1].y}
+                  r="4.5"
+                  fill="#fbbf24"
+                  style={{ filter: "drop-shadow(0 0 3px #fbbf24)" }}
+                />
+              </>
+            )}
           </svg>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "4px" }}>
-          <span>{INTEREST_RATE_DATA[selectedInterestCountry].history[0].date}</span>
-          <span>Current (t)</span>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
+          {forexTimeframe === "1s" && (
+            <>
+              <span>-60s</span>
+              <span>-30s</span>
+              <span>Now (1s)</span>
+            </>
+          )}
+          {forexTimeframe === "30s" && (
+            <>
+              <span>-30m</span>
+              <span>-15m</span>
+              <span>Now (30s)</span>
+            </>
+          )}
+          {forexTimeframe === "1m" && (
+            <>
+              <span>-60m</span>
+              <span>-30m</span>
+              <span>Now (1m)</span>
+            </>
+          )}
+          {forexTimeframe === "5m" && (
+            <>
+              <span>-5h</span>
+              <span>-2.5h</span>
+              <span>Now (5m)</span>
+            </>
+          )}
         </div>
       </div>
 
