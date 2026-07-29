@@ -9,6 +9,8 @@ import WeeklyNewsHub from "./components/WeeklyNewsHub";
 import ProCalendarModal from "./components/ProCalendarModal";
 import KnowledgeModal from "./components/KnowledgeModal";
 import AnalysisModal from "./components/AnalysisModal";
+import MiniChartsGrid from "./components/MiniChartsGrid";
+import PasteTradesModal from "./components/PasteTradesModal";
 import { translations } from "./translations";
 
 const defaultTrade = {
@@ -58,6 +60,7 @@ export default function Home() {
   const [isKnowledgeOpen, setIsKnowledgeOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [isAddTradeOpen, setIsAddTradeOpen] = useState(false);
+  const [isPasteTradesOpen, setIsPasteTradesOpen] = useState(false);
   const [renamingFileName, setRenamingFileName] = useState("");
   const [renameInputVal, setRenameInputVal] = useState("");
   const [lang, setLang] = useState("en");
@@ -185,6 +188,12 @@ export default function Home() {
         setError("Error saving manual trade.");
       }
     }
+  };
+
+  const handleBulkImportTrades = async (importedTrades) => {
+    const updated = [...importedTrades, ...trades];
+    setTrades(updated);
+    await saveTradesToStorage(updated);
   };
 
   const handleWheel = (e) => {
@@ -957,53 +966,7 @@ export default function Home() {
           <WeeklyNewsHub lang={lang} />
         </div>
 
-        <div className="mainGrid" style={{ gridTemplateColumns: showChart ? "minmax(0, 1fr) 330px" : "1fr" }}>
-          {showChart && (
-            <section className="chartPanel">
-              <div className="chartHead">
-                <div>
-                  <strong>{selectedTrade ? `${selectedTrade.symbol} ${selectedTrade.type}` : "No trade selected"}</strong>
-                  <span>{selectedTrade ? `${formatDate(selectedTrade.openTime)} -> ${formatDate(selectedTrade.closeTime)}` : "Select a trade from the table"}</span>
-                </div>
-                <div className={selectedTrade?.profit >= 0 ? "result good" : "result bad"}>
-                  {selectedTrade ? money(selectedTrade.profit) : "$0.00"}
-                </div>
-              </div>
-
-              <div className="chartControls" aria-label="Chart controls">
-                <div className="segmented">
-                  {intervals.map((item) => (
-                    <button className={item === interval ? "active" : ""} key={item} onClick={() => changeInterval(item)} disabled={loading}>{item}</button>
-                  ))}
-                </div>
-                <div className="toolButtons">
-                  <button onClick={zoomIn}>Zoom +</button>
-                  <button onClick={zoomOut}>Zoom -</button>
-                  <button onClick={() => pan(-1)}>Left</button>
-                  <button onClick={() => pan(1)}>Right</button>
-                  <button onClick={fitTrade}>Fit trade</button>
-                  <button onClick={showLatest}>Latest</button>
-                </div>
-              </div>
-
-              <div
-                className="canvasWrap"
-                ref={wrapRef}
-                onWheel={handleWheel}
-                onClick={handleChartClick}
-                style={{ cursor: "pointer" }}
-                title="Click to open advanced fullscreen chart"
-              >
-                <canvas ref={canvasRef} />
-              </div>
-            </section>
-          )}
-
-          <aside className="review">
-            <h2>Coach review</h2>
-            <Review selectedTrade={selectedTrade} candles={candles} />
-          </aside>
-        </div>
+        {showChart && <MiniChartsGrid />}
 
         <section className={`tableWrap ${isFullscreenTrades ? "fullscreen" : ""}`}>
           <div className="tableHeaderActions" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "12px", padding: "10px 0" }}>
@@ -1025,6 +988,23 @@ export default function Home() {
                 }}
               >
                 ➕ {t.addTrade}
+              </button>
+              <button
+                onClick={() => setIsPasteTradesOpen(true)}
+                style={{
+                  background: "linear-gradient(135deg, #38bdf8, #0284c7)",
+                  border: "none",
+                  color: "#000",
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  letterSpacing: "0.2px",
+                  boxShadow: "0 2px 8px rgba(56, 189, 248, 0.3)"
+                }}
+              >
+                📝 Paste Trades
               </button>
               <button 
                 onClick={() => setIsFullscreenTrades(!isFullscreenTrades)}
@@ -1339,6 +1319,13 @@ export default function Home() {
           t={t}
         />
       )}
+
+      {/* Paste text trades modal */}
+      <PasteTradesModal
+        isOpen={isPasteTradesOpen}
+        onClose={() => setIsPasteTradesOpen(false)}
+        onImport={handleBulkImportTrades}
+      />
     </main>
   );
 }
