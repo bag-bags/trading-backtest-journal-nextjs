@@ -83,27 +83,29 @@ export default function Home() {
   const saveTradesToStorage = async (updatedTrades) => {
     try {
       localStorage.setItem("chart_trades", JSON.stringify(updatedTrades));
-      if (activeFileName) {
-        const headers = "Symbol,Type,Volume,Open Price,Close Price,Open Time,Close Time,Profit\n";
-        const rows = updatedTrades.map((t) =>
-          `${t.symbol},${t.type},${t.volume},${t.openPrice},${t.closePrice},${formatCsvDate(t.openTime)},${formatCsvDate(t.closeTime)},${t.profit}`
-        ).join("\n");
-        const rawContent = headers + rows;
-        const saved = JSON.parse(localStorage.getItem("journal_files") || "[]");
-        const updatedFiles = saved.map((f) => f.name === activeFileName ? { ...f, content: rawContent } : f);
-        localStorage.setItem("journal_files", JSON.stringify(updatedFiles));
-        
-        // Save to filesystem on the server
-        const res = await fetch("/api/journal-files", {
-          method: "PUT",
-          headers: { "Content-Type": "application/json" },
-          body: JSON.stringify({ oldName: activeFileName, content: rawContent })
-        });
-        if (res.ok) {
-          const payload = await res.json();
-          if (payload.files && !payload.isReadOnly) {
-            setJournalFiles(payload.files);
-          }
+      const targetFileName = activeFileName || "manual-trades.csv";
+      const headers = "Symbol,Type,Volume,Open Price,Close Price,Open Time,Close Time,Profit\n";
+      const rows = updatedTrades.map((t) =>
+        `${t.symbol},${t.type},${t.volume},${t.openPrice},${t.closePrice},${formatCsvDate(t.openTime)},${formatCsvDate(t.closeTime)},${t.profit}`
+      ).join("\n");
+      const rawContent = headers + rows;
+      const saved = JSON.parse(localStorage.getItem("journal_files") || "[]");
+      let updatedFiles = saved.map((f) => f.name === targetFileName ? { ...f, content: rawContent } : f);
+      if (!saved.some(f => f.name === targetFileName)) {
+        updatedFiles.push({ name: targetFileName, content: rawContent });
+      }
+      localStorage.setItem("journal_files", JSON.stringify(updatedFiles));
+      
+      // Save to filesystem on the server
+      const res = await fetch("/api/journal-files", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldName: targetFileName, content: rawContent })
+      });
+      if (res.ok) {
+        const payload = await res.json();
+        if (payload.files && !payload.isReadOnly) {
+          setJournalFiles(payload.files);
         }
       }
     } catch (_) {}

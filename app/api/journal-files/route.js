@@ -94,12 +94,10 @@ export async function PUT(req) {
     const oldPath = path.join(rootDir, oldName);
 
     try {
-      if (!fs.existsSync(oldPath)) {
-        return NextResponse.json({ error: "File not found" }, { status: 404 });
-      }
-
       if (content !== undefined) {
         fs.writeFileSync(oldPath, content, "utf-8");
+      } else if (!fs.existsSync(oldPath)) {
+        return NextResponse.json({ error: "File not found" }, { status: 404 });
       }
 
       let targetName = newName;
