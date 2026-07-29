@@ -3,74 +3,74 @@ import fs from "fs";
 import path from "path";
 import { google } from "googleapis";
 
-// Helper to get Google Drive client auth
-async function getGoogleDriveClient() {
+// Helper to get Google Sheets client auth
+async function getGoogleSheetsAuth() {
   const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
   const privateKey = process.env.GOOGLE_PRIVATE_KEY;
   if (!clientEmail || !privateKey) {
     return null;
   }
   const formattedKey = privateKey.replace(/\\n/g, "\n");
-  const auth = new google.auth.JWT(
+  return new google.auth.JWT(
     clientEmail,
     null,
     formattedKey,
-    ["https://www.googleapis.com/auth/drive"]
+    ["https://www.googleapis.com/auth/spreadsheets"]
   );
-  return google.drive({ version: "v3", auth });
 }
 
-// Helper to upload/update CSV file on Google Drive
-async function saveToGoogleDrive(filename, content) {
+// Helper to overwrite values in a Google Sheet tab
+async function saveToGoogleSheets(filename, csvContent) {
   try {
-    const drive = await getGoogleDriveClient();
-    if (!drive) {
-      return { success: false, reason: "Google Drive credentials not set in environment." };
+    const auth = await getGoogleSheetsAuth();
+    if (!auth) {
+      return { success: false, reason: "Google credentials not set in .env.local" };
     }
 
-    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
-    let query = `name = '${filename}' and trashed = false`;
-    if (folderId) {
-      query += ` and '${folderId}' in parents`;
+    const sheets = google.sheets({ version: "v4", auth });
+    const spreadsheetId = "1QWu1FSZTzVlymyaoeh77HdXnrEKDJRErI0y1ovqc3YA";
+    const tabName = filename.replace(/\.csv$/i, "");
+
+    // 1. Ensure the sheet tab exists
+    try {
+      await sheets.spreadsheets.batchUpdate({
+        spreadsheetId,
+        requestBody: {
+          requests: [{
+            addSheet: {
+              properties: { title: tabName }
+            }
+          }]
+        }
+      });
+    } catch (_) {
+      // Tab likely already exists
     }
 
-    const searchResponse = await drive.files.list({
-      q: query,
-      fields: "files(id, name)",
-      spaces: "drive"
+    // 2. Parse CSV content into an array of rows
+    const rows = csvContent.split("\n")
+      .map(line => line.split(","))
+      .filter(row => row.length > 0 && row[0] !== "");
+
+    // 3. Clear existing content in the tab
+    await sheets.spreadsheets.values.clear({
+      spreadsheetId,
+      range: `'${tabName}'!A:Z`
     });
 
-    const existingFiles = searchResponse.data.files;
-    const media = {
-      mimeType: "text/csv",
-      body: content
-    };
-
-    if (existingFiles && existingFiles.length > 0) {
-      const fileId = existingFiles[0].id;
-      await drive.files.update({
-        fileId: fileId,
-        media: media,
-        fields: "id"
-      });
-      return { success: true, fileId, action: "updated" };
-    } else {
-      const fileMetadata = {
-        name: filename,
-        mimeType: "text/csv"
-      };
-      if (folderId) {
-        fileMetadata.parents = [folderId];
+    // 4. Write new content
+    await sheets.spreadsheets.values.update({
+      spreadsheetId,
+      range: `'${tabName}'!A1`,
+      valueInputOption: "USER_ENTERED",
+      requestBody: {
+        values: rows
       }
-      const createResponse = await drive.files.create({
-        requestBody: fileMetadata,
-        media: media,
-        fields: "id"
-      });
-      return { success: true, fileId: createResponse.data.id, action: "created" };
-    }
+    });
+
+    return { success: true, tabName, action: "synced" };
   } catch (err) {
-    console.error("Google Drive API Error:", err);
+    console.error("Google Sheets Sync Error:", err);
     return { success: false, reason: err.message };
   }
 }
@@ -157,8 +157,8 @@ export async function POST(req) {
         fileContent = fs.readFileSync(filePath, "utf-8");
       }
       
-      // Sync with Google Drive
-      const gdStatus = await saveToGoogleDrive(filename, fileContent);
+      // Sync with Google Sheets
+      const gdStatus = await saveToGoogleSheets(filename, fileContent);
 
       return NextResponse.json({ 
         success: true, 
@@ -217,9 +217,9 @@ export async function PUT(req) {
         fs.renameSync(oldPath, newPath);
       }
 
-      // Sync active CSV content with Google Drive
+      // Sync active CSV content with Google Sheets
       const activeContent = content !== undefined ? content : fs.readFileSync(path.join(targetDir, targetName || oldName), "utf-8");
-      const gdStatus = await saveToGoogleDrive(targetName || oldName, activeContent);
+      const gdStatus = await saveToGoogleSheets(targetName || oldName, activeContent);
 
       return NextResponse.json({ 
         success: true, 
