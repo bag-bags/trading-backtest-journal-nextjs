@@ -9,6 +9,17 @@ export default function PasteTradesModal({ isOpen, onClose, onImport }) {
 
   if (!isOpen) return null;
 
+  const handlePasteFromClipboard = async () => {
+    try {
+      const clipboardText = await navigator.clipboard.readText();
+      // Replace all newlines with spaces as requested
+      const cleaned = clipboardText.replace(/[\r\n]+/g, " ").trim();
+      setText(cleaned);
+    } catch (err) {
+      setErrors(["Could not read clipboard automatically. Please paste manually into the textbox."]);
+    }
+  };
+
   const handleParseAndImport = () => {
     setErrors([]);
     setSuccessCount(0);
@@ -138,6 +149,42 @@ export default function PasteTradesModal({ isOpen, onClose, onImport }) {
           if (parts.length < 5) {
             parts = line.split(/\s{2,}/);
           }
+          
+          // Check if space-joined layout
+          if (parts.length < 5) {
+            const spaceParts = line.split(" ").filter(Boolean);
+            if (spaceParts.length >= 15) {
+              parts = spaceParts;
+              const symbol = parts[0].replace("/", "").toUpperCase();
+              const type = parts[1].toUpperCase();
+              if (type !== "BUY" && type !== "SELL") {
+                throw new Error(`Invalid type: "${parts[1]}". Expected BUY or SELL.`);
+              }
+              const volume = parseFloat(parts[2]);
+              if (isNaN(volume) || volume <= 0) {
+                throw new Error(`Invalid volume: "${parts[2]}".`);
+              }
+              const openPrice = parseFloat(parts[3].replace(/,/g, ""));
+              const closePrice = parseFloat(parts[4].replace(/,/g, ""));
+              if (isNaN(openPrice) || isNaN(closePrice)) {
+                throw new Error(`Invalid prices: Open="${parts[3]}", Close="${parts[4]}".`);
+              }
+
+              // Dates are always 4 words: Month Day Time AM/PM
+              const openTime = parseDateHelper(parts.slice(8, 12).join(" "));
+              const closeTime = parseDateHelper(parts.slice(12, 16).join(" "));
+
+              const profitStr = parts[parts.length - 1].replace(/\+/g, "").replace(/,/g, "");
+              const profit = parseFloat(profitStr);
+              if (isNaN(profit)) {
+                throw new Error(`Invalid profit: "${parts[parts.length - 1]}".`);
+              }
+
+              validTrades.push({ symbol, type, volume, openPrice, closePrice, openTime, closeTime, profit });
+              return;
+            }
+          }
+
           parts = parts.map(p => p.trim());
 
           if (parts.length < 8) {
@@ -258,10 +305,29 @@ export default function PasteTradesModal({ isOpen, onClose, onImport }) {
           </button>
         </div>
 
-        <p style={{ margin: 0, fontSize: "13px", color: "#888893", lineHeight: "1.4" }}>
-          Copy trade history lines directly from MetaTrader or other journals and paste them below.
-          The parser will automatically read the Symbol, Type, Volume, Prices, Times, and Profit/Loss.
-        </p>
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", gap: "10px", flexWrap: "wrap" }}>
+          <p style={{ margin: 0, fontSize: "13px", color: "#888893", lineHeight: "1.4", flex: 1 }}>
+            Copy trade history lines directly from MetaTrader and click Paste. The parser will read Symbol, Type, Volume, Prices, Times, and Profit.
+          </p>
+          <button
+            onClick={handlePasteFromClipboard}
+            style={{
+              background: "#161b22",
+              border: "1px solid #30363d",
+              color: "#58a6ff",
+              padding: "6px 12px",
+              borderRadius: "6px",
+              cursor: "pointer",
+              fontSize: "12px",
+              fontWeight: "700",
+              display: "flex",
+              alignItems: "center",
+              gap: "6px"
+            }}
+          >
+            📋 Paste Clipboard
+          </button>
+        </div>
 
         <textarea
           value={text}
