@@ -107,6 +107,11 @@ export default function Home() {
         if (payload.files && !payload.isReadOnly) {
           setJournalFiles(payload.files);
         }
+        if (payload.googleDrive && payload.googleDrive.success) {
+          setImportMessage(`Saved and Synced ${targetFileName} to Google Drive!`);
+        } else if (payload.googleDrive) {
+          setImportMessage(`Saved ${targetFileName} (Local only: ${payload.googleDrive.reason})`);
+        }
       }
     } catch (_) {}
   };
@@ -378,7 +383,13 @@ export default function Home() {
           const updatedFiles = [...saved.filter(f => f.name !== fileName), { name: fileName, content: rawContent }];
           localStorage.setItem("journal_files", JSON.stringify(updatedFiles));
           
-          setImportMessage(`Saved new backtest file: ${fileName}`);
+          let statusMsg = `Saved new backtest file: ${fileName}`;
+          if (payload.googleDrive && payload.googleDrive.success) {
+            statusMsg += ` (Synced to Google Drive!)`;
+          } else if (payload.googleDrive) {
+            statusMsg += ` (Local only: ${payload.googleDrive.reason})`;
+          }
+          setImportMessage(statusMsg);
         }
       } else {
         throw new Error("Failed to write file to server.");

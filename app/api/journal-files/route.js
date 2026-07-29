@@ -1,6 +1,79 @@
 import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
+import { google } from "googleapis";
+
+// Helper to get Google Drive client auth
+async function getGoogleDriveClient() {
+  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+  if (!clientEmail || !privateKey) {
+    return null;
+  }
+  const formattedKey = privateKey.replace(/\\n/g, "\n");
+  const auth = new google.auth.JWT(
+    clientEmail,
+    null,
+    formattedKey,
+    ["https://www.googleapis.com/auth/drive"]
+  );
+  return google.drive({ version: "v3", auth });
+}
+
+// Helper to upload/update CSV file on Google Drive
+async function saveToGoogleDrive(filename, content) {
+  try {
+    const drive = await getGoogleDriveClient();
+    if (!drive) {
+      return { success: false, reason: "Google Drive credentials not set in environment." };
+    }
+
+    const folderId = process.env.GOOGLE_DRIVE_FOLDER_ID;
+    let query = `name = '${filename}' and trashed = false`;
+    if (folderId) {
+      query += ` and '${folderId}' in parents`;
+    }
+
+    const searchResponse = await drive.files.list({
+      q: query,
+      fields: "files(id, name)",
+      spaces: "drive"
+    });
+
+    const existingFiles = searchResponse.data.files;
+    const media = {
+      mimeType: "text/csv",
+      body: content
+    };
+
+    if (existingFiles && existingFiles.length > 0) {
+      const fileId = existingFiles[0].id;
+      await drive.files.update({
+        fileId: fileId,
+        media: media,
+        fields: "id"
+      });
+      return { success: true, fileId, action: "updated" };
+    } else {
+      const fileMetadata = {
+        name: filename,
+        mimeType: "text/csv"
+      };
+      if (folderId) {
+        fileMetadata.parents = [folderId];
+      }
+      const createResponse = await drive.files.create({
+        requestBody: fileMetadata,
+        media: media,
+        fields: "id"
+      });
+      return { success: true, fileId: createResponse.data.id, action: "created" };
+    }
+  } catch (err) {
+    console.error("Google Drive API Error:", err);
+    return { success: false, reason: err.message };
+  }
+}
 
 // Helper to get target backtests directory
 function getBacktestsDir() {
@@ -75,12 +148,23 @@ export async function POST(req) {
 
     try {
       let fileExists = fs.existsSync(filePath);
+      let fileContent = "";
       if (!fileExists) {
-        fs.writeFileSync(filePath, headers + row, "utf-8");
+        fileContent = headers + row;
+        fs.writeFileSync(filePath, fileContent, "utf-8");
       } else {
         fs.appendFileSync(filePath, row, "utf-8");
+        fileContent = fs.readFileSync(filePath, "utf-8");
       }
-      return NextResponse.json({ success: true, files: getCsvFiles() });
+      
+      // Sync with Google Drive
+      const gdStatus = await saveToGoogleDrive(filename, fileContent);
+
+      return NextResponse.json({ 
+        success: true, 
+        files: getCsvFiles(), 
+        googleDrive: gdStatus 
+      });
     } catch (fsErr) {
       return NextResponse.json({ 
         success: true, 
@@ -133,7 +217,15 @@ export async function PUT(req) {
         fs.renameSync(oldPath, newPath);
       }
 
-      return NextResponse.json({ success: true, files: getCsvFiles() });
+      // Sync active CSV content with Google Drive
+      const activeContent = content !== undefined ? content : fs.readFileSync(path.join(targetDir, targetName || oldName), "utf-8");
+      const gdStatus = await saveToGoogleDrive(targetName || oldName, activeContent);
+
+      return NextResponse.json({ 
+        success: true, 
+        files: getCsvFiles(), 
+        googleDrive: gdStatus 
+      });
     } catch (fsErr) {
       return NextResponse.json({ 
         success: true, 
