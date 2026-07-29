@@ -175,43 +175,70 @@ export default function MiniChartsGrid() {
   // Chart 4: Economic Calendar News Feed
   const [newsFilterCountry, setNewsFilterCountry] = useState("ALL");
 
-  // Init Forex Prices & 60-seconds History
+  const [forexTimeframe, setForexTimeframe] = useState("30s");
+  const [secondsCounter, setSecondsCounter] = useState(0);
+
+  const TIMEFRAME_SECONDS = {
+    "1s": 1,
+    "30s": 30,
+    "1m": 60,
+    "5m": 300
+  };
+
+  // Re-generate history on timeframe change to keep price chart scaling realistic
   useEffect(() => {
-    const initialPrices = {};
-    const initialHistory = {};
+    const nextHistory = {};
+    const tfSec = TIMEFRAME_SECONDS[forexTimeframe] || 30;
+    const volFactor = Math.sqrt(tfSec);
+
     Object.keys(FOREX_PAIRS).forEach(pair => {
       const conf = FOREX_PAIRS[pair];
-      initialPrices[pair] = conf.base;
-      // Pre-fill history with 60 ticking points (60 seconds)
+      const startPrice = forexPrices[pair] || conf.base;
       const hist = [];
+      let tempPrice = startPrice - (Math.random() - 0.5) * conf.step * 15 * volFactor;
+      
       for (let i = 0; i < 60; i++) {
-        hist.push(conf.base + (Math.random() - 0.5) * conf.step * 10);
+        tempPrice += (Math.random() - 0.5) * conf.step * 2 * volFactor;
+        hist.push(parseFloat(tempPrice.toFixed(conf.decimals)));
       }
-      initialHistory[pair] = hist;
+      nextHistory[pair] = hist;
     });
-    setForexPrices(initialPrices);
-    setForexHistory(initialHistory);
 
-    // Live Tickers Simulation interval (Updates every 1 second)
+    setForexHistory(nextHistory);
+    setSecondsCounter(0);
+  }, [forexTimeframe]);
+
+  // Live Tickers Simulation interval (Updates every 1 second)
+  useEffect(() => {
     const interval = setInterval(() => {
+      setSecondsCounter(prev => prev + 1);
+
       setForexPrices(prevPrices => {
         const nextPrices = { ...prevPrices };
         const nextDirs = {};
         const nextHist = { ...forexHistory };
+        const tfSec = TIMEFRAME_SECONDS[forexTimeframe] || 30;
 
         Object.keys(FOREX_PAIRS).forEach(pair => {
           const conf = FOREX_PAIRS[pair];
           const curr = prevPrices[pair] || conf.base;
-          const change = (Math.random() - 0.5) * conf.step * 1.5;
+          // Volatility scales with selected timeframe
+          const change = (Math.random() - 0.5) * conf.step * 1.5 * Math.sqrt(tfSec);
           const next = parseFloat((curr + change).toFixed(conf.decimals));
 
           nextPrices[pair] = next;
           nextDirs[pair] = next > curr ? "up" : next < curr ? "down" : "flat";
 
-          if (nextHist[pair]) {
-            // Push new tick, shift old tick (keeping exactly 60 seconds rolling history)
-            const updated = [...nextHist[pair].slice(1), next];
-            nextHist[pair] = updated;
+          if (nextHist[pair] && nextHist[pair].length > 0) {
+            const hist = [...nextHist[pair]];
+            // If timeframe interval is met, push new bar and shift oldest out.
+            // Otherwise, update the last bar with current tick.
+            if ((secondsCounter + 1) % tfSec === 0) {
+              nextHist[pair] = [...hist.slice(1), next];
+            } else {
+              hist[hist.length - 1] = next;
+              nextHist[pair] = hist;
+            }
           }
         });
 
@@ -226,7 +253,7 @@ export default function MiniChartsGrid() {
     }, 1000);
 
     return () => clearInterval(interval);
-  }, [forexHistory]);
+  }, [forexHistory, forexTimeframe, secondsCounter]);
 
   const svgWidth = 260;
   const svgHeight = 90;
@@ -423,7 +450,7 @@ export default function MiniChartsGrid() {
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <span style={{ fontSize: "16px" }}>📈</span>
             <span style={cardTitleStyle}>Live Forex & Metals</span>
-            <span style={liveIndicatorStyle} className="pulse-indicator">● SEC/MIN</span>
+            <span style={liveIndicatorStyle} className="pulse-indicator">● {forexTimeframe.toUpperCase()}</span>
           </div>
           <div style={tabContainerStyle}>
             {Object.keys(FOREX_PAIRS).map(p => {
@@ -444,6 +471,22 @@ export default function MiniChartsGrid() {
                 </button>
               );
             })}
+          </div>
+        </div>
+
+        {/* Timeframe Selector Row */}
+        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", background: "#161619", padding: "4px 8px", borderRadius: "6px", border: "1px solid #222225" }}>
+          <span style={{ fontSize: "10.5px", color: "var(--muted)", fontWeight: "600" }}>Timeframe:</span>
+          <div style={tabContainerStyle}>
+            {["1s", "30s", "1m", "5m"].map(tf => (
+              <button
+                key={tf}
+                onClick={() => setForexTimeframe(tf)}
+                style={forexTimeframe === tf ? activeTabStyle : tabStyle}
+              >
+                {tf}
+              </button>
+            ))}
           </div>
         </div>
 
@@ -534,9 +577,34 @@ export default function MiniChartsGrid() {
           </svg>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
-          <span>-60s (Last Min)</span>
-          <span>-30s</span>
-          <span>0s (Now)</span>
+          {forexTimeframe === "1s" && (
+            <>
+              <span>-60s</span>
+              <span>-30s</span>
+              <span>Now (1s)</span>
+            </>
+          )}
+          {forexTimeframe === "30s" && (
+            <>
+              <span>-30m</span>
+              <span>-15m</span>
+              <span>Now (30s)</span>
+            </>
+          )}
+          {forexTimeframe === "1m" && (
+            <>
+              <span>-60m</span>
+              <span>-30m</span>
+              <span>Now (1m)</span>
+            </>
+          )}
+          {forexTimeframe === "5m" && (
+            <>
+              <span>-5h</span>
+              <span>-2.5h</span>
+              <span>Now (5m)</span>
+            </>
+          )}
         </div>
       </div>
 
