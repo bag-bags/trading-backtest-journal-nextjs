@@ -203,7 +203,7 @@ export default function MiniChartsGrid() {
 
       // Fluctuate live inflation slightly for UI feedback
       setInflationLiveOffset((Math.random() - 0.5) * 0.05);
-    }, 1500);
+    }, 1000);
 
     return () => clearInterval(interval);
   }, [forexHistory]);
