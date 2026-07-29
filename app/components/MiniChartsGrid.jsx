@@ -2,56 +2,74 @@
 
 import { useState, useEffect, useMemo } from "react";
 
-// Mock data helper for historical inflation CPI values (past 12 months)
+// Mock data helper for historical monthly CPI values (past 12 months)
 const INFLATION_DATA = {
-  US: [3.4, 3.3, 3.2, 3.1, 3.0, 2.9, 3.0, 3.1, 2.9, 2.8, 2.9, 3.0],
-  EU: [2.8, 2.6, 2.5, 2.4, 2.4, 2.2, 2.5, 2.6, 2.4, 2.3, 2.2, 2.4],
-  UK: [3.2, 3.0, 2.8, 2.3, 2.0, 2.0, 2.2, 2.3, 2.1, 1.9, 2.0, 2.2]
+  US: {
+    history: [3.4, 3.3, 3.2, 3.1, 3.0, 2.9, 3.0, 3.1, 2.9, 2.8, 2.9, 3.0],
+    lastMonth: 2.90
+  },
+  EU: {
+    history: [2.8, 2.6, 2.5, 2.4, 2.4, 2.2, 2.5, 2.6, 2.4, 2.3, 2.2, 2.4],
+    lastMonth: 2.20
+  },
+  UK: {
+    history: [3.2, 3.0, 2.8, 2.3, 2.0, 2.0, 2.2, 2.3, 2.1, 1.9, 2.0, 2.2],
+    lastMonth: 2.00
+  }
 };
 
-// Interest rate timelines for step chart
-const INTEREST_RATE_HISTORY = {
-  US: [
-    { date: "Jan 25", rate: 5.50 },
-    { date: "Mar 25", rate: 5.50 },
-    { date: "May 25", rate: 5.25 },
-    { date: "Jul 25", rate: 5.25 },
-    { date: "Sep 25", rate: 5.00 },
-    { date: "Nov 25", rate: 4.75 },
-    { date: "Dec 25", rate: 4.50 },
-    { date: "Jan 26", rate: 4.50 }
-  ],
-  EU: [
-    { date: "Jan 25", rate: 4.00 },
-    { date: "Mar 25", rate: 3.75 },
-    { date: "May 25", rate: 3.75 },
-    { date: "Jul 25", rate: 3.50 },
-    { date: "Sep 25", rate: 3.25 },
-    { date: "Nov 25", rate: 3.00 },
-    { date: "Dec 25", rate: 3.00 },
-    { date: "Jan 26", rate: 2.75 }
-  ],
-  UK: [
-    { date: "Jan 25", rate: 5.25 },
-    { date: "Mar 25", rate: 5.00 },
-    { date: "May 25", rate: 5.00 },
-    { date: "Jul 25", rate: 4.75 },
-    { date: "Sep 25", rate: 4.75 },
-    { date: "Nov 25", rate: 4.50 },
-    { date: "Dec 25", rate: 4.25 },
-    { date: "Jan 26", rate: 4.25 }
-  ]
+// Interest rate histories
+const INTEREST_RATE_DATA = {
+  US: {
+    history: [
+      { date: "Jan 25", rate: 5.50 },
+      { date: "Mar 25", rate: 5.50 },
+      { date: "May 25", rate: 5.25 },
+      { date: "Jul 25", rate: 5.25 },
+      { date: "Sep 25", rate: 5.00 },
+      { date: "Nov 25", rate: 4.75 },
+      { date: "Dec 25", rate: 4.50 },
+      { date: "Jan 26", rate: 4.50 }
+    ],
+    lastMonth: 4.75
+  },
+  EU: {
+    history: [
+      { date: "Jan 25", rate: 4.00 },
+      { date: "Mar 25", rate: 3.75 },
+      { date: "May 25", rate: 3.75 },
+      { date: "Jul 25", rate: 3.50 },
+      { date: "Sep 25", rate: 3.25 },
+      { date: "Nov 25", rate: 3.00 },
+      { date: "Dec 25", rate: 3.00 },
+      { date: "Jan 26", rate: 2.75 }
+    ],
+    lastMonth: 3.00
+  },
+  UK: {
+    history: [
+      { date: "Jan 25", rate: 5.25 },
+      { date: "Mar 25", rate: 5.00 },
+      { date: "May 25", rate: 5.00 },
+      { date: "Jul 25", rate: 4.75 },
+      { date: "Sep 25", rate: 4.75 },
+      { date: "Nov 25", rate: 4.50 },
+      { date: "Dec 25", rate: 4.25 },
+      { date: "Jan 26", rate: 4.25 }
+    ],
+    lastMonth: 4.50
+  }
 };
 
-// Forex starting prices and configurations
+// Forex starting configurations
 const FOREX_PAIRS = {
-  "EUR/USD": { base: 1.0850, step: 0.0003, decimals: 4 },
-  "GBP/USD": { base: 1.2820, step: 0.0004, decimals: 4 },
-  "USD/CHF": { base: 0.8810, step: 0.0003, decimals: 4 },
-  "Gold/USD": { base: 2420.50, step: 1.2, decimals: 2 }
+  "EUR/USD": { base: 1.0850, step: 0.0001, decimals: 4 },
+  "GBP/USD": { base: 1.2820, step: 0.0001, decimals: 4 },
+  "USD/CHF": { base: 0.8810, step: 0.0001, decimals: 4 },
+  "Gold/USD": { base: 2420.50, step: 0.4, decimals: 2 }
 };
 
-// Economic Calendar Events from Investing.com with country codes and impact assessment
+// Economic Calendar Events from Investing.com
 const ECONOMIC_CALENDAR_NEWS = [
   {
     id: 1,
@@ -140,40 +158,41 @@ const ECONOMIC_CALENDAR_NEWS = [
 ];
 
 export default function MiniChartsGrid() {
-  // Chart 1 States: Inflation
+  // Chart 1: Inflation
   const [selectedInflationCountry, setSelectedInflationCountry] = useState("US");
   const [inflationLiveOffset, setInflationLiveOffset] = useState(0);
 
-  // Chart 2 States: Forex Live
+  // Chart 2: Forex Live
   const [selectedForexPair, setSelectedForexPair] = useState("EUR/USD");
   const [forexPrices, setForexPrices] = useState({});
-  const [forexDirections, setForexDirections] = useState({}); // 'up', 'down', 'flat'
-  const [forexHistory, setForexHistory] = useState({}); // pair -> array of last 15 prices
+  const [forexDirections, setForexDirections] = useState({});
+  const [forexHistory, setForexHistory] = useState({}); // Stores rolling 60 points (1 point per second = 1 minute total)
 
-  // Chart 3 States: Interest Rates
+  // Chart 3: Interest Rates
   const [selectedInterestCountry, setSelectedInterestCountry] = useState("US");
+  const [interestLiveOffset, setInterestLiveOffset] = useState(0);
 
-  // Chart 4 States: Economic Calendar News Feed
+  // Chart 4: Economic Calendar News Feed
   const [newsFilterCountry, setNewsFilterCountry] = useState("ALL");
 
-  // Init Forex Prices & Histories
+  // Init Forex Prices & 60-seconds History
   useEffect(() => {
     const initialPrices = {};
     const initialHistory = {};
     Object.keys(FOREX_PAIRS).forEach(pair => {
       const conf = FOREX_PAIRS[pair];
       initialPrices[pair] = conf.base;
-      // Pre-fill history with dummy trending points
+      // Pre-fill history with 60 ticking points (60 seconds)
       const hist = [];
-      for (let i = 0; i < 15; i++) {
-        hist.push(conf.base + (Math.random() - 0.5) * conf.step * 4);
+      for (let i = 0; i < 60; i++) {
+        hist.push(conf.base + (Math.random() - 0.5) * conf.step * 10);
       }
       initialHistory[pair] = hist;
     });
     setForexPrices(initialPrices);
     setForexHistory(initialHistory);
 
-    // Live Tickers Simulation interval
+    // Live Tickers Simulation interval (Updates every 1 second)
     const interval = setInterval(() => {
       setForexPrices(prevPrices => {
         const nextPrices = { ...prevPrices };
@@ -183,14 +202,14 @@ export default function MiniChartsGrid() {
         Object.keys(FOREX_PAIRS).forEach(pair => {
           const conf = FOREX_PAIRS[pair];
           const curr = prevPrices[pair] || conf.base;
-          const change = (Math.random() - 0.5) * conf.step;
+          const change = (Math.random() - 0.5) * conf.step * 1.5;
           const next = parseFloat((curr + change).toFixed(conf.decimals));
 
           nextPrices[pair] = next;
           nextDirs[pair] = next > curr ? "up" : next < curr ? "down" : "flat";
 
-          // Update History
           if (nextHist[pair]) {
+            // Push new tick, shift old tick (keeping exactly 60 seconds rolling history)
             const updated = [...nextHist[pair].slice(1), next];
             nextHist[pair] = updated;
           }
@@ -201,24 +220,31 @@ export default function MiniChartsGrid() {
         return nextPrices;
       });
 
-      // Fluctuate live inflation slightly for UI feedback
-      setInflationLiveOffset((Math.random() - 0.5) * 0.05);
+      // Minor fluctuations for live values of CPI and Interest Rates
+      setInflationLiveOffset((Math.random() - 0.5) * 0.02);
+      setInterestLiveOffset((Math.random() - 0.5) * 0.01);
     }, 1000);
 
     return () => clearInterval(interval);
   }, [forexHistory]);
 
-  // SVG dimensions
   const svgWidth = 260;
   const svgHeight = 90;
 
-  // Chart calculations for Inflation Tracker
+  // CPI Live & Last Month comparisons
+  const inflationStats = useMemo(() => {
+    const data = INFLATION_DATA[selectedInflationCountry];
+    const latestBase = data.history[data.history.length - 1];
+    const liveVal = parseFloat((latestBase + inflationLiveOffset).toFixed(2));
+    const lastMonth = data.lastMonth;
+    const diff = parseFloat((liveVal - lastMonth).toFixed(2));
+    return { liveVal, lastMonth, diff };
+  }, [selectedInflationCountry, inflationLiveOffset]);
+
+  // CPI Line Coordinates
   const inflationPoints = useMemo(() => {
-    const data = [...INFLATION_DATA[selectedInflationCountry]];
-    if (data.length > 0) {
-      // Apply the live offset to the latest month's data
-      data[data.length - 1] = parseFloat((data[data.length - 1] + inflationLiveOffset).toFixed(2));
-    }
+    const data = [...INFLATION_DATA[selectedInflationCountry].history];
+    data[data.length - 1] = inflationStats.liveVal;
     const min = Math.min(...data) - 0.2;
     const max = Math.max(...data) + 0.2;
     const range = max - min || 1;
@@ -228,9 +254,48 @@ export default function MiniChartsGrid() {
       const y = svgHeight - ((val - min) / range) * (svgHeight - 20) - 10;
       return { x, y, value: val };
     });
-  }, [selectedInflationCountry, inflationLiveOffset]);
+  }, [selectedInflationCountry, inflationStats.liveVal]);
 
-  // Chart calculations for Forex live price history
+  // Central Bank Rates Live & Last Month comparisons
+  const interestStats = useMemo(() => {
+    const data = INTEREST_RATE_DATA[selectedInterestCountry];
+    const latestBase = data.history[data.history.length - 1].rate;
+    const liveVal = parseFloat((latestBase + interestLiveOffset).toFixed(2));
+    const lastMonth = data.lastMonth;
+    const diff = parseFloat((liveVal - lastMonth).toFixed(2));
+    return { liveVal, lastMonth, diff };
+  }, [selectedInterestCountry, interestLiveOffset]);
+
+  // Stepped chart points for Interest rates
+  const interestPoints = useMemo(() => {
+    const data = [...INTEREST_RATE_DATA[selectedInterestCountry].history];
+    const min = Math.min(...data.map(d => d.rate)) - 0.5;
+    const max = Math.max(...data.map(d => d.rate)) + 0.5;
+    const range = max - min || 1;
+
+    const points = [];
+    data.forEach((d, index) => {
+      let r = d.rate;
+      if (index === data.length - 1) {
+        r = interestStats.liveVal;
+      }
+      const x = (index / (data.length - 1)) * (svgWidth - 30) + 15;
+      const y = svgHeight - ((r - min) / range) * (svgHeight - 30) - 15;
+      points.push({ x, y, date: d.date, rate: r });
+    });
+    return points;
+  }, [selectedInterestCountry, interestStats.liveVal]);
+
+  const interestStepPath = useMemo(() => {
+    if (interestPoints.length < 2) return "";
+    let d = `M ${interestPoints[0].x} ${interestPoints[0].y}`;
+    for (let i = 1; i < interestPoints.length; i++) {
+      d += ` H ${interestPoints[i].x} V ${interestPoints[i].y}`;
+    }
+    return d;
+  }, [interestPoints]);
+
+  // Enhanced Forex Area Chart Coordinates
   const forexPoints = useMemo(() => {
     const data = forexHistory[selectedForexPair] || [];
     if (!data.length) return [];
@@ -239,46 +304,35 @@ export default function MiniChartsGrid() {
     const range = max - min || 0.0001;
 
     return data.map((val, index) => {
-      const x = (index / (data.length - 1)) * (svgWidth - 20) + 10;
-      const y = svgHeight - ((val - min) / range) * (svgHeight - 15) - 7;
+      const x = (index / (data.length - 1)) * (svgWidth - 30) + 10;
+      const y = svgHeight - ((val - min) / range) * (svgHeight - 24) - 16;
       return { x, y, value: val };
     });
   }, [selectedForexPair, forexHistory]);
 
-  // Chart calculations for Interest rates stepped history
-  const interestPoints = useMemo(() => {
-    const data = INTEREST_RATE_HISTORY[selectedInterestCountry];
-    const rates = data.map(d => d.rate);
-    const min = Math.min(...rates) - 0.5;
-    const max = Math.max(...rates) + 0.5;
-    const range = max - min || 1;
+  // Area path generator (closes shape at the bottom for beautiful gradient fill)
+  const forexAreaPath = useMemo(() => {
+    if (forexPoints.length < 2) return "";
+    const first = forexPoints[0];
+    const last = forexPoints[forexPoints.length - 1];
+    const linePath = forexPoints.reduce((acc, p, i) => `${acc} ${i === 0 ? "M" : "L"} ${p.x} ${p.y}`, "");
+    // Close the path to the bottom edge of the svg
+    return `${linePath} L ${last.x} ${svgHeight - 10} L ${first.x} ${svgHeight - 10} Z`;
+  }, [forexPoints]);
 
-    const points = [];
-    data.forEach((d, index) => {
-      const x = (index / (data.length - 1)) * (svgWidth - 30) + 15;
-      const y = svgHeight - ((d.rate - min) / range) * (svgHeight - 30) - 15;
-      points.push({ x, y, ...d });
-    });
-    return points;
-  }, [selectedInterestCountry]);
+  // Min and Max values of Forex history to show on Y-axis
+  const forexMinMax = useMemo(() => {
+    const data = forexHistory[selectedForexPair] || [];
+    if (!data.length) return { min: 0, max: 0 };
+    return { min: Math.min(...data), max: Math.max(...data) };
+  }, [selectedForexPair, forexHistory]);
 
-  // Generate step line path for interest rates
-  const interestStepPath = useMemo(() => {
-    if (interestPoints.length < 2) return "";
-    let d = `M ${interestPoints[0].x} ${interestPoints[0].y}`;
-    for (let i = 1; i < interestPoints.length; i++) {
-      // Move horizontally to next x, then vertically to next y (step effect)
-      d += ` H ${interestPoints[i].x} V ${interestPoints[i].y}`;
-    }
-    return d;
-  }, [interestPoints]);
-
-  // Filtered economic calendar news items (limit to 3)
+  // Filtered Economic Calendar Feed: display all if "ALL", else filter by country
   const filteredNews = useMemo(() => {
     return ECONOMIC_CALENDAR_NEWS.filter(item => {
       if (newsFilterCountry === "ALL") return true;
       return item.country === newsFilterCountry;
-    }).slice(0, 3);
+    });
   }, [newsFilterCountry]);
 
   return (
@@ -305,35 +359,47 @@ export default function MiniChartsGrid() {
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
-          <div>
-            <span style={{ fontSize: "20px", fontWeight: "800", color: "#ffffff" }}>
-              {inflationPoints[inflationPoints.length - 1]?.value.toFixed(2)}%
-            </span>
-            <span style={{ fontSize: "11px", color: "var(--muted)", marginLeft: "6px" }}>
-              Year-over-Year
+        {/* COMPARISON FIGURES SECTION */}
+        <div style={comparisonGridStyle}>
+          <div style={statBoxStyle}>
+            <span style={statLabelStyle}>Live Rate (t)</span>
+            <strong style={{ fontSize: "17px", color: "#ffffff", display: "flex", alignItems: "center", gap: "4px" }}>
+              {inflationStats.liveVal.toFixed(2)}%
+              <span className="pulse-indicator" style={{ color: "var(--good)", fontSize: "12px" }}>●</span>
+            </strong>
+          </div>
+          <div style={statBoxStyle}>
+            <span style={statLabelStyle}>Last Month</span>
+            <strong style={{ fontSize: "17px", color: "#e4e4e7" }}>
+              {inflationStats.lastMonth.toFixed(2)}%
+            </strong>
+          </div>
+          <div style={statBoxStyle}>
+            <span style={statLabelStyle}>MoM Change</span>
+            <span
+              style={{
+                fontSize: "14px",
+                fontWeight: "800",
+                color: inflationStats.diff >= 0 ? "var(--bad)" : "var(--good)"
+              }}
+            >
+              {inflationStats.diff >= 0 ? `+${inflationStats.diff.toFixed(2)}%` : `${inflationStats.diff.toFixed(2)}%`}
             </span>
           </div>
-          <span style={{ fontSize: "11px", color: "var(--good)", fontWeight: "600" }}>
-            CPI Index Print
-          </span>
         </div>
 
-        <div style={{ flex: 1, position: "relative", minHeight: "90px" }}>
-          <svg width="100%" height="90" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
-            {/* Grid helper lines */}
+        <div style={{ flex: 1, position: "relative", minHeight: "80px", marginTop: "4px" }}>
+          <svg width="100%" height="80" viewBox={`0 0 ${svgWidth} ${svgHeight - 10}`} preserveAspectRatio="none">
             <line x1="0" y1="15" x2={svgWidth} y2="15" stroke="#1f1f23" strokeDasharray="3,3" />
             <line x1="0" y1="45" x2={svgWidth} y2="45" stroke="#1f1f23" strokeDasharray="3,3" />
             <line x1="0" y1="75" x2={svgWidth} y2="75" stroke="#1f1f23" strokeDasharray="3,3" />
             
-            {/* Smooth SVG Path for line */}
             <path
               d={inflationPoints.reduce((acc, p, i) => `${acc} ${i === 0 ? "M" : "L"} ${p.x} ${p.y}`, "")}
               fill="none"
               stroke="#a3e635"
               strokeWidth="2"
             />
-            {/* Dot at latest point */}
             {inflationPoints.length > 0 && (
               <circle
                 cx={inflationPoints[inflationPoints.length - 1].x}
@@ -347,16 +413,17 @@ export default function MiniChartsGrid() {
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "4px" }}>
           <span>12 Months Ago</span>
-          <span>Current</span>
+          <span>Current (t)</span>
         </div>
       </div>
 
-      {/* CARD 2: Forex & Gold Live Prices */}
+      {/* CARD 2: Forex & Gold Live Prices - UPGRADED AREA CHART */}
       <div className="mini-chart-card" style={cardStyle}>
         <div style={cardHeaderStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <span style={{ fontSize: "16px" }}>📈</span>
             <span style={cardTitleStyle}>Live Forex & Metals</span>
+            <span style={liveIndicatorStyle} className="pulse-indicator">● SEC/MIN</span>
           </div>
           <div style={tabContainerStyle}>
             {Object.keys(FOREX_PAIRS).map(p => (
@@ -381,41 +448,77 @@ export default function MiniChartsGrid() {
                 fontSize: "11px",
                 fontWeight: "700",
                 marginLeft: "8px",
-                color: forexDirections[selectedForexPair] === "up" ? "var(--good)" : forexDirections[selectedForexPair] === "down" ? "var(--bad)" : "var(--muted)",
-                transition: "color 0.2s"
+                color: forexDirections[selectedForexPair] === "up" ? "var(--good)" : forexDirections[selectedForexPair] === "down" ? "var(--bad)" : "var(--muted)"
               }}
             >
               {forexDirections[selectedForexPair] === "up" ? "▲ TICK UP" : forexDirections[selectedForexPair] === "down" ? "▼ TICK DOWN" : "■ FLAT"}
             </span>
           </div>
-          <span style={{ fontSize: "11px", color: "var(--muted)" }}>{selectedForexPair}</span>
+          <span style={{ fontSize: "11px", color: "var(--muted)", fontWeight: "600" }}>{selectedForexPair}</span>
         </div>
 
-        <div style={{ flex: 1, position: "relative", minHeight: "90px" }}>
-          <svg width="100%" height="90" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
-            <line x1="0" y1="15" x2={svgWidth} y2="15" stroke="#1f1f23" strokeDasharray="3,3" />
-            <line x1="0" y1="45" x2={svgWidth} y2="45" stroke="#1f1f23" strokeDasharray="3,3" />
-            <line x1="0" y1="75" x2={svgWidth} y2="75" stroke="#1f1f23" strokeDasharray="3,3" />
+        {/* UPGRADED Area Chart with Gradient, Grid and Labels */}
+        <div style={{ flex: 1, position: "relative", minHeight: "85px" }}>
+          <div style={{ position: "absolute", left: 0, top: 0, fontSize: "8px", color: "var(--muted)" }}>
+            High: {forexMinMax.max.toFixed(FOREX_PAIRS[selectedForexPair].decimals)}
+          </div>
+          <div style={{ position: "absolute", left: 0, bottom: 12, fontSize: "8px", color: "var(--muted)" }}>
+            Low: {forexMinMax.min.toFixed(FOREX_PAIRS[selectedForexPair].decimals)}
+          </div>
 
+          <svg width="100%" height="85" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
+            <defs>
+              <linearGradient id="forexAreaGrad" x1="0" y1="0" x2="0" y2="1">
+                <stop offset="0%" stopColor="#38bdf8" stopOpacity="0.25" />
+                <stop offset="100%" stopColor="#38bdf8" stopOpacity="0.0" />
+              </linearGradient>
+            </defs>
+
+            {/* Grid Lines */}
+            <line x1="10" y1="15" x2={svgWidth - 20} y2="15" stroke="#1c1c22" strokeWidth="0.5" />
+            <line x1="10" y1="45" x2={svgWidth - 20} y2="45" stroke="#1c1c22" strokeWidth="0.5" />
+            <line x1="10" y1="75" x2={svgWidth - 20} y2="75" stroke="#1c1c22" strokeWidth="0.5" />
+
+            {/* Area Path */}
+            {forexPoints.length > 0 && (
+              <path d={forexAreaPath} fill="url(#forexAreaGrad)" />
+            )}
+
+            {/* Line Path */}
             <path
               d={forexPoints.reduce((acc, p, i) => `${acc} ${i === 0 ? "M" : "L"} ${p.x} ${p.y}`, "")}
               fill="none"
               stroke="#38bdf8"
               strokeWidth="2"
             />
+
+            {/* Live Ticking Horizontal Guideline & Badge */}
             {forexPoints.length > 0 && (
-              <circle
-                cx={forexPoints[forexPoints.length - 1].x}
-                cy={forexPoints[forexPoints.length - 1].y}
-                r="4"
-                fill="#38bdf8"
-              />
+              <>
+                <line
+                  x1="10"
+                  y1={forexPoints[forexPoints.length - 1].y}
+                  x2={svgWidth - 20}
+                  y2={forexPoints[forexPoints.length - 1].y}
+                  stroke="rgba(56, 189, 248, 0.4)"
+                  strokeDasharray="2,2"
+                  strokeWidth="1"
+                />
+                <circle
+                  cx={forexPoints[forexPoints.length - 1].x}
+                  cy={forexPoints[forexPoints.length - 1].y}
+                  r="4.5"
+                  fill="#38bdf8"
+                  style={{ filter: "drop-shadow(0 0 3px #38bdf8)" }}
+                />
+              </>
             )}
           </svg>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "4px" }}>
-          <span>Recent activity</span>
-          <span className="pulse-indicator">Live ticking</span>
+        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
+          <span>-60s (Last Min)</span>
+          <span>-30s</span>
+          <span>0s (Now)</span>
         </div>
       </div>
 
@@ -425,6 +528,7 @@ export default function MiniChartsGrid() {
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
             <span style={{ fontSize: "16px" }}>🏛️</span>
             <span style={cardTitleStyle}>Interest Rates (FED/ECB/BOE)</span>
+            <span style={liveIndicatorStyle} className="pulse-indicator">● LIVE</span>
           </div>
           <div style={tabContainerStyle}>
             {["US", "EU", "UK"].map(c => (
@@ -439,22 +543,37 @@ export default function MiniChartsGrid() {
           </div>
         </div>
 
-        <div style={{ display: "flex", justifyContent: "space-between", alignItems: "baseline", marginBottom: "8px" }}>
-          <div>
-            <span style={{ fontSize: "20px", fontWeight: "800", color: "#ffffff" }}>
-              {INTEREST_RATE_HISTORY[selectedInterestCountry][INTEREST_RATE_HISTORY[selectedInterestCountry].length - 1].rate.toFixed(2)}%
-            </span>
-            <span style={{ fontSize: "11px", color: "var(--muted)", marginLeft: "6px" }}>
-              Policy Rate
+        {/* COMPARISON FIGURES SECTION */}
+        <div style={comparisonGridStyle}>
+          <div style={statBoxStyle}>
+            <span style={statLabelStyle}>Live Rate (t)</span>
+            <strong style={{ fontSize: "17px", color: "#ffffff", display: "flex", alignItems: "center", gap: "4px" }}>
+              {interestStats.liveVal.toFixed(2)}%
+              <span className="pulse-indicator" style={{ color: "#fbbf24", fontSize: "12px" }}>●</span>
+            </strong>
+          </div>
+          <div style={statBoxStyle}>
+            <span style={statLabelStyle}>Last Month</span>
+            <strong style={{ fontSize: "17px", color: "#e4e4e7" }}>
+              {interestStats.lastMonth.toFixed(2)}%
+            </strong>
+          </div>
+          <div style={statBoxStyle}>
+            <span style={statLabelStyle}>MoM Change</span>
+            <span
+              style={{
+                fontSize: "14px",
+                fontWeight: "800",
+                color: interestStats.diff > 0 ? "var(--good)" : interestStats.diff < 0 ? "var(--bad)" : "var(--muted)"
+              }}
+            >
+              {interestStats.diff > 0 ? `+${interestStats.diff.toFixed(2)}%` : `${interestStats.diff.toFixed(2)}%`}
             </span>
           </div>
-          <span style={{ fontSize: "11px", color: "var(--muted)" }}>
-            {selectedInterestCountry === "US" ? "FED Fund Rate" : selectedInterestCountry === "EU" ? "Refinancing Rate" : "Official Bank Rate"}
-          </span>
         </div>
 
-        <div style={{ flex: 1, position: "relative", minHeight: "90px" }}>
-          <svg width="100%" height="90" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
+        <div style={{ flex: 1, position: "relative", minHeight: "80px", marginTop: "4px" }}>
+          <svg width="100%" height="80" viewBox={`0 0 ${svgWidth} ${svgHeight - 10}`} preserveAspectRatio="none">
             <line x1="0" y1="15" x2={svgWidth} y2="15" stroke="#1f1f23" strokeDasharray="3,3" />
             <line x1="0" y1="45" x2={svgWidth} y2="45" stroke="#1f1f23" strokeDasharray="3,3" />
             <line x1="0" y1="75" x2={svgWidth} y2="75" stroke="#1f1f23" strokeDasharray="3,3" />
@@ -470,7 +589,7 @@ export default function MiniChartsGrid() {
                 key={i}
                 cx={p.x}
                 cy={p.y}
-                r="3"
+                r="3.5"
                 fill="#fbbf24"
                 style={{ cursor: "pointer" }}
                 title={`${p.date}: ${p.rate}%`}
@@ -479,12 +598,12 @@ export default function MiniChartsGrid() {
           </svg>
         </div>
         <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "4px" }}>
-          <span>{INTEREST_RATE_HISTORY[selectedInterestCountry][0].date}</span>
-          <span>{INTEREST_RATE_HISTORY[selectedInterestCountry][INTEREST_RATE_HISTORY[selectedInterestCountry].length - 1].date}</span>
+          <span>{INTEREST_RATE_DATA[selectedInterestCountry].history[0].date}</span>
+          <span>Current (t)</span>
         </div>
       </div>
 
-      {/* CARD 4: Economic Calendar News Feed */}
+      {/* CARD 4: Economic Calendar News Feed - SCROLLABLE FOR ALL */}
       <div className="mini-chart-card" style={cardStyle}>
         <div style={cardHeaderStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -504,19 +623,20 @@ export default function MiniChartsGrid() {
           </div>
         </div>
 
-        <div style={{ display: "flex", flexDirection: "column", gap: "6px", overflowY: "auto", flex: 1, paddingRight: "2px" }}>
+        {/* Scrollable Container with custom styling */}
+        <div className="custom-news-scrollbar" style={{ display: "flex", flexDirection: "column", gap: "8px", overflowY: "auto", height: "145px", paddingRight: "4px" }}>
           {filteredNews.map(item => (
             <div
               key={item.id}
               style={{
                 background: "#161619",
                 borderLeft: `3px solid ${item.country === "US" ? "#38bdf8" : item.country === "EU" ? "#a3e635" : "#fbbf24"}`,
-                padding: "6px 8px",
+                padding: "8px",
                 borderRadius: "4px",
                 fontSize: "11px",
                 display: "flex",
                 flexDirection: "column",
-                gap: "2px"
+                gap: "3px"
               }}
             >
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
@@ -525,10 +645,10 @@ export default function MiniChartsGrid() {
                 </span>
                 <span
                   style={{
-                    fontSize: "8px",
-                    background: "rgba(244,63,94,0.15)",
+                    fontSize: "8.5px",
+                    background: "rgba(244,63,94,0.12)",
                     color: "var(--bad)",
-                    padding: "1px 4px",
+                    padding: "1px 5px",
                     borderRadius: "3px",
                     fontWeight: "800"
                   }}
@@ -536,26 +656,26 @@ export default function MiniChartsGrid() {
                   HIGH IMPACT
                 </span>
               </div>
-              <div style={{ color: "#e4e4e7", fontWeight: "500", fontSize: "11px", lineHeight: "1.3" }}>
+              <div style={{ color: "#e4e4e7", fontWeight: "600", fontSize: "11px", lineHeight: "1.3" }}>
                 {item.title}
               </div>
               <div style={{ fontSize: "9.5px", color: "var(--muted)", fontStyle: "italic", marginTop: "2px" }}>
                 <strong>Impact target:</strong> {item.probableImpact.asset} ({item.probableImpact.direction})
-                <div style={{ color: "#a1a1aa", fontSize: "9px", marginTop: "1px", lineHeight: "1.2", fontStyle: "normal" }}>
+                <div style={{ color: "#a1a1aa", fontSize: "9px", marginTop: "2.5px", lineHeight: "1.2", fontStyle: "normal" }}>
                   {item.probableImpact.explanation}
                 </div>
               </div>
             </div>
           ))}
           {filteredNews.length === 0 && (
-            <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "11px", padding: "16px 0" }}>
+            <div style={{ textAlign: "center", color: "var(--muted)", fontSize: "11.5px", padding: "24px 0" }}>
               No important news events matching filters.
             </div>
           )}
         </div>
       </div>
       
-      {/* CSS details injected for keyframe animations (like pulse indicator and dots) */}
+      {/* CSS details injected for keyframe animations & scrollbar */}
       <style jsx global>{`
         .pulse-indicator {
           animation: pulse 1.8s infinite;
@@ -572,6 +692,20 @@ export default function MiniChartsGrid() {
           from { filter: drop-shadow(0 0 1px #a3e635); }
           to { filter: drop-shadow(0 0 4px #a3e635); }
         }
+        /* Custom scrollbar for news hub */
+        .custom-news-scrollbar::-webkit-scrollbar {
+          width: 4px;
+        }
+        .custom-news-scrollbar::-webkit-scrollbar-track {
+          background: #111113;
+        }
+        .custom-news-scrollbar::-webkit-scrollbar-thumb {
+          background: #27272a;
+          border-radius: 4px;
+        }
+        .custom-news-scrollbar::-webkit-scrollbar-thumb:hover {
+          background: #38bdf8;
+        }
       `}</style>
     </div>
   );
@@ -586,7 +720,7 @@ const cardStyle = {
   display: "flex",
   flexDirection: "column",
   justifyContent: "space-between",
-  minHeight: "220px",
+  minHeight: "240px",
   boxShadow: "0 4px 20px rgba(0, 0, 0, 0.15)",
   transition: "all 0.25s ease"
 };
@@ -595,7 +729,7 @@ const cardHeaderStyle = {
   display: "flex",
   justifyContent: "space-between",
   alignItems: "center",
-  marginBottom: "12px",
+  marginBottom: "10px",
   flexWrap: "wrap",
   gap: "6px"
 };
@@ -641,4 +775,28 @@ const activeTabStyle = {
   ...tabStyle,
   background: "#27272a",
   color: "#ffffff"
+};
+
+const comparisonGridStyle = {
+  display: "grid",
+  gridTemplateColumns: "repeat(3, 1fr)",
+  gap: "8px",
+  background: "#161619",
+  borderRadius: "6px",
+  padding: "8px",
+  marginBottom: "6px",
+  border: "1px solid #222225"
+};
+
+const statBoxStyle = {
+  display: "flex",
+  flexDirection: "column",
+  gap: "2px"
+};
+
+const statLabelStyle = {
+  fontSize: "9.5px",
+  color: "var(--muted)",
+  textTransform: "uppercase",
+  fontWeight: "600"
 };
