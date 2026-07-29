@@ -80,10 +80,10 @@ export default function Home() {
 
   const t = translations[lang] || translations.en;
 
-  const saveTradesToStorage = async (updatedTrades) => {
+  const saveTradesToStorage = async (updatedTrades, customFileName = null) => {
     try {
       localStorage.setItem("chart_trades", JSON.stringify(updatedTrades));
-      const targetFileName = activeFileName || "manual-trades.csv";
+      const targetFileName = customFileName || activeFileName || "manual-trades.csv";
       const headers = "Symbol,Type,Volume,Open Price,Close Price,Open Time,Close Time,Profit\n";
       const rows = updatedTrades.map((t) =>
         `${t.symbol},${t.type},${t.volume},${t.openPrice},${t.closePrice},${formatCsvDate(t.openTime)},${formatCsvDate(t.closeTime)},${t.profit}`
@@ -312,10 +312,27 @@ export default function Home() {
       }
 
       if (validTrades.length > 0) {
-        const updated = [...validTrades, ...trades];
+        // Load existing trades from manual-trades.csv specifically
+        const saved = JSON.parse(localStorage.getItem("journal_files") || "[]");
+        const manualFile = saved.find(f => f.name === "manual-trades.csv");
+        let existingTrades = [];
+        if (manualFile) {
+          existingTrades = parseCsvToTrades(manualFile.content);
+        } else {
+          existingTrades = trades;
+        }
+
+        const updated = [...validTrades, ...existingTrades];
+        
+        // 1. Save specifically to manual-trades.csv
+        await saveTradesToStorage(updated, "manual-trades.csv");
+        
+        // 2. Switch view to manual-trades.csv
+        setActiveFileName("manual-trades.csv");
+        localStorage.setItem("active_journal_file_name", "manual-trades.csv");
         setTrades(updated);
-        await saveTradesToStorage(updated);
-        setImportMessage(`Imported ${validTrades.length} trade(s) from clipboard.`);
+
+        setImportMessage(`Imported ${validTrades.length} trade(s) directly into manual-trades.csv.`);
         setError("");
       } else {
         throw new Error("No valid trades found in clipboard.");
