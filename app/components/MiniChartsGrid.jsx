@@ -63,13 +63,13 @@ const INTEREST_RATE_DATA = {
 
 // Forex starting configurations
 const FOREX_PAIRS = {
-  "EUR/USD": { base: 1.0850, step: 0.0001, decimals: 4 },
-  "GBP/USD": { base: 1.2820, step: 0.0001, decimals: 4 },
-  "USD/CHF": { base: 0.8810, step: 0.0001, decimals: 4 },
-  "Gold/USD": { base: 2420.50, step: 0.4, decimals: 2 }
+  "EUR/USD": { base: 1.0850, step: 0.0001, decimals: 4, unit: "" },
+  "GBP/USD": { base: 1.2820, step: 0.0001, decimals: 4, unit: "" },
+  "USD/CHF": { base: 0.8810, step: 0.0001, decimals: 4, unit: "" },
+  "Gold/USD": { base: 2420.50, step: 0.4, decimals: 2, unit: " USD" }
 };
 
-// Economic Calendar Events from Investing.com
+// Economic Calendar Events
 const ECONOMIC_CALENDAR_NEWS = [
   {
     id: 1,
@@ -166,7 +166,7 @@ export default function MiniChartsGrid() {
   const [selectedForexPair, setSelectedForexPair] = useState("EUR/USD");
   const [forexPrices, setForexPrices] = useState({});
   const [forexDirections, setForexDirections] = useState({});
-  const [forexHistory, setForexHistory] = useState({}); // Stores rolling 60 points (1 point per second = 1 minute total)
+  const [forexHistory, setForexHistory] = useState({});
 
   // Chart 3: Interest Rates
   const [selectedInterestCountry, setSelectedInterestCountry] = useState("US");
@@ -177,6 +177,7 @@ export default function MiniChartsGrid() {
   // Chart 4: Economic Calendar News Feed
   const [newsFilterCountry, setNewsFilterCountry] = useState("ALL");
 
+  // Timeframe selector states
   const [forexTimeframe, setForexTimeframe] = useState("30s");
   const [secondsCounter, setSecondsCounter] = useState(0);
 
@@ -184,10 +185,13 @@ export default function MiniChartsGrid() {
     "1s": 1,
     "30s": 30,
     "1m": 60,
-    "5m": 300
+    "5m": 300,
+    "15m": 900,
+    "1h": 3600,
+    "4h": 14400
   };
 
-  // Re-generate history on timeframe change to keep price chart scaling realistic
+  // Re-generate histories on timeframe change to keep price chart scaling realistic
   useEffect(() => {
     const nextHistory = {};
     const tfSec = TIMEFRAME_SECONDS[forexTimeframe] || 30;
@@ -300,8 +304,10 @@ export default function MiniChartsGrid() {
     return () => clearInterval(interval);
   }, [forexHistory, interestHistory, forexTimeframe, secondsCounter]);
 
-  const svgWidth = 260;
+  // SVG grid config
+  const svgWidth = 300;
   const svgHeight = 90;
+  const chartAreaWidth = 230; // leaves 70px on the right for Y-axis labels
 
   // CPI Live & Last Month comparisons
   const inflationStats = useMemo(() => {
@@ -313,20 +319,26 @@ export default function MiniChartsGrid() {
     return { liveVal, lastMonth, diff };
   }, [selectedInflationCountry, inflationLiveOffset]);
 
+  // CPI Min/Max for Y-axis scaling
+  const inflationMinMax = useMemo(() => {
+    const data = [...INFLATION_DATA[selectedInflationCountry].history];
+    data[data.length - 1] = inflationStats.liveVal;
+    return { min: Math.min(...data) - 0.1, max: Math.max(...data) + 0.1 };
+  }, [selectedInflationCountry, inflationStats.liveVal]);
+
   // CPI Line Coordinates
   const inflationPoints = useMemo(() => {
     const data = [...INFLATION_DATA[selectedInflationCountry].history];
     data[data.length - 1] = inflationStats.liveVal;
-    const min = Math.min(...data) - 0.2;
-    const max = Math.max(...data) + 0.2;
+    const { min, max } = inflationMinMax;
     const range = max - min || 1;
 
     return data.map((val, index) => {
-      const x = (index / (data.length - 1)) * (svgWidth - 20) + 10;
-      const y = svgHeight - ((val - min) / range) * (svgHeight - 20) - 10;
+      const x = (index / (data.length - 1)) * chartAreaWidth + 10;
+      const y = svgHeight - ((val - min) / range) * (svgHeight - 24) - 15;
       return { x, y, value: val };
     });
-  }, [selectedInflationCountry, inflationStats.liveVal]);
+  }, [selectedInflationCountry, inflationStats.liveVal, inflationMinMax]);
 
   // Central Bank Rates Live & Last Month comparisons
   const interestStats = useMemo(() => {
@@ -337,20 +349,26 @@ export default function MiniChartsGrid() {
     return { liveVal, lastMonth, diff, diffPct };
   }, [selectedInterestCountry, interestPrices]);
 
+  // Min/Max of Interest History
+  const interestMinMax = useMemo(() => {
+    const data = interestHistory[selectedInterestCountry] || [];
+    if (!data.length) return { min: 4.0, max: 5.0 };
+    return { min: Math.min(...data), max: Math.max(...data) };
+  }, [selectedInterestCountry, interestHistory]);
+
   // Stepped chart points replaced with rolling live points
   const interestPoints = useMemo(() => {
     const data = interestHistory[selectedInterestCountry] || [];
     if (!data.length) return [];
-    const min = Math.min(...data);
-    const max = Math.max(...data);
+    const { min, max } = interestMinMax;
     const range = max - min || 0.01;
 
     return data.map((val, index) => {
-      const x = (index / (data.length - 1)) * (svgWidth - 30) + 10;
-      const y = svgHeight - ((val - min) / range) * (svgHeight - 24) - 16;
+      const x = (index / (data.length - 1)) * chartAreaWidth + 10;
+      const y = svgHeight - ((val - min) / range) * (svgHeight - 24) - 15;
       return { x, y, value: val };
     });
-  }, [selectedInterestCountry, interestHistory]);
+  }, [selectedInterestCountry, interestHistory, interestMinMax]);
 
   const interestAreaPath = useMemo(() => {
     if (interestPoints.length < 2) return "";
@@ -360,51 +378,55 @@ export default function MiniChartsGrid() {
     return `${linePath} L ${last.x} ${svgHeight - 10} L ${first.x} ${svgHeight - 10} Z`;
   }, [interestPoints]);
 
-  const interestMinMax = useMemo(() => {
-    const data = interestHistory[selectedInterestCountry] || [];
-    if (!data.length) return { min: 0, max: 0 };
-    return { min: Math.min(...data), max: Math.max(...data) };
-  }, [selectedInterestCountry, interestHistory]);
-
-  // Enhanced Forex Area Chart Coordinates
-  const forexPoints = useMemo(() => {
-    const data = forexHistory[selectedForexPair] || [];
-    if (!data.length) return [];
-    const min = Math.min(...data);
-    const max = Math.max(...data);
-    const range = max - min || 0.0001;
-
-    return data.map((val, index) => {
-      const x = (index / (data.length - 1)) * (svgWidth - 30) + 10;
-      const y = svgHeight - ((val - min) / range) * (svgHeight - 24) - 16;
-      return { x, y, value: val };
-    });
-  }, [selectedForexPair, forexHistory]);
-
-  // Area path generator (closes shape at the bottom for beautiful gradient fill)
-  const forexAreaPath = useMemo(() => {
-    if (forexPoints.length < 2) return "";
-    const first = forexPoints[0];
-    const last = forexPoints[forexPoints.length - 1];
-    const linePath = forexPoints.reduce((acc, p, i) => `${acc} ${i === 0 ? "M" : "L"} ${p.x} ${p.y}`, "");
-    // Close the path to the bottom edge of the svg
-    return `${linePath} L ${last.x} ${svgHeight - 10} L ${first.x} ${svgHeight - 10} Z`;
-  }, [forexPoints]);
-
-  // Min and Max values of Forex history to show on Y-axis
+  // Min/Max of Forex History
   const forexMinMax = useMemo(() => {
     const data = forexHistory[selectedForexPair] || [];
     if (!data.length) return { min: 0, max: 0 };
     return { min: Math.min(...data), max: Math.max(...data) };
   }, [selectedForexPair, forexHistory]);
 
-  // Filtered Economic Calendar Feed: display all if "ALL", else filter by country
+  // Enhanced Forex Area Chart Coordinates
+  const forexPoints = useMemo(() => {
+    const data = forexHistory[selectedForexPair] || [];
+    if (!data.length) return [];
+    const { min, max } = forexMinMax;
+    const range = max - min || 0.0001;
+
+    return data.map((val, index) => {
+      const x = (index / (data.length - 1)) * chartAreaWidth + 10;
+      const y = svgHeight - ((val - min) / range) * (svgHeight - 24) - 15;
+      return { x, y, value: val };
+    });
+  }, [selectedForexPair, forexHistory, forexMinMax]);
+
+  // Area path generator
+  const forexAreaPath = useMemo(() => {
+    if (forexPoints.length < 2) return "";
+    const first = forexPoints[0];
+    const last = forexPoints[forexPoints.length - 1];
+    const linePath = forexPoints.reduce((acc, p, i) => `${acc} ${i === 0 ? "M" : "L"} ${p.x} ${p.y}`, "");
+    return `${linePath} L ${last.x} ${svgHeight - 10} L ${first.x} ${svgHeight - 10} Z`;
+  }, [forexPoints]);
+
+  // Filtered news items
   const filteredNews = useMemo(() => {
     return ECONOMIC_CALENDAR_NEWS.filter(item => {
       if (newsFilterCountry === "ALL") return true;
       return item.country === newsFilterCountry;
     });
   }, [newsFilterCountry]);
+
+  // Helper to format currency values or symbols on Y-axis
+  const formatYValue = (val, type) => {
+    if (type === "forex") {
+      const conf = FOREX_PAIRS[selectedForexPair];
+      if (selectedForexPair === "Gold/USD") {
+        return `$${val.toFixed(2)}`;
+      }
+      return val.toFixed(conf.decimals);
+    }
+    return `${val.toFixed(2)}%`;
+  };
 
   return (
     <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(320px, 1fr))", gap: "16px", marginBottom: "20px" }}>
@@ -459,12 +481,25 @@ export default function MiniChartsGrid() {
           </div>
         </div>
 
-        <div style={{ flex: 1, position: "relative", minHeight: "80px", marginTop: "4px" }}>
-          <svg width="100%" height="80" viewBox={`0 0 ${svgWidth} ${svgHeight - 10}`} preserveAspectRatio="none">
-            <line x1="0" y1="15" x2={svgWidth} y2="15" stroke="#1f1f23" strokeDasharray="3,3" />
-            <line x1="0" y1="45" x2={svgWidth} y2="45" stroke="#1f1f23" strokeDasharray="3,3" />
-            <line x1="0" y1="75" x2={svgWidth} y2="75" stroke="#1f1f23" strokeDasharray="3,3" />
+        {/* Inflation SVG Chart with Grid and Y-axis Labels */}
+        <div style={{ flex: 1, position: "relative", minHeight: "85px", marginTop: "4px" }}>
+          <svg width="100%" height="85" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
+            {/* Grid Lines */}
+            <line x1="10" y1="15" x2={chartAreaWidth} y2="15" stroke="#1f1f23" strokeDasharray="3,3" />
+            <line x1="10" y1="45" x2={chartAreaWidth} y2="45" stroke="#1f1f23" strokeDasharray="3,3" />
+            <line x1="10" y1="75" x2={chartAreaWidth} y2="75" stroke="#1f1f23" strokeDasharray="3,3" />
             
+            {/* Y-Axis Value Labels */}
+            <text x={chartAreaWidth + 8} y="18" fill="var(--muted)" fontSize="9" fontWeight="600">
+              {formatYValue(inflationMinMax.max, "inflation")}
+            </text>
+            <text x={chartAreaWidth + 8} y="48" fill="var(--muted)" fontSize="9" fontWeight="600">
+              {formatYValue((inflationMinMax.max + inflationMinMax.min) / 2, "inflation")}
+            </text>
+            <text x={chartAreaWidth + 8} y="78" fill="var(--muted)" fontSize="9" fontWeight="600">
+              {formatYValue(inflationMinMax.min, "inflation")}
+            </text>
+
             <path
               d={inflationPoints.reduce((acc, p, i) => `${acc} ${i === 0 ? "M" : "L"} ${p.x} ${p.y}`, "")}
               fill="none"
@@ -482,13 +517,13 @@ export default function MiniChartsGrid() {
             )}
           </svg>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "4px" }}>
+        <div style={{ display: "flex", width: `${chartAreaWidth}px`, justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "4px" }}>
           <span>12 Months Ago</span>
           <span>Current (t)</span>
         </div>
       </div>
 
-      {/* CARD 2: Forex & Gold Live Prices - UPGRADED AREA CHART */}
+      {/* CARD 2: Forex & Gold Live Prices */}
       <div className="mini-chart-card" style={cardStyle}>
         <div style={cardHeaderStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -521,12 +556,17 @@ export default function MiniChartsGrid() {
         {/* Timeframe Selector Row */}
         <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "8px", background: "#161619", padding: "4px 8px", borderRadius: "6px", border: "1px solid #222225" }}>
           <span style={{ fontSize: "10.5px", color: "var(--muted)", fontWeight: "600" }}>Timeframe:</span>
-          <div style={tabContainerStyle}>
-            {["1s", "30s", "1m", "5m"].map(tf => (
+          <div style={tabContainerStyle} className="timeframe-tabs">
+            {["1s", "30s", "1m", "5m", "15m", "1h", "4h"].map(tf => (
               <button
                 key={tf}
                 onClick={() => setForexTimeframe(tf)}
-                style={forexTimeframe === tf ? activeTabStyle : tabStyle}
+                style={{
+                  ...tabStyle,
+                  ...(forexTimeframe === tf ? activeTabStyle : {}),
+                  padding: "3px 6px",
+                  fontSize: "9px"
+                }}
               >
                 {tf}
               </button>
@@ -562,15 +602,8 @@ export default function MiniChartsGrid() {
           </span>
         </div>
 
-        {/* UPGRADED Area Chart with Gradient, Grid and Labels */}
+        {/* Forex SVG Chart with Grid and Y-axis Labels */}
         <div style={{ flex: 1, position: "relative", minHeight: "85px" }}>
-          <div style={{ position: "absolute", left: 0, top: 0, fontSize: "8px", color: "var(--muted)" }}>
-            High: {forexMinMax.max.toFixed(FOREX_PAIRS[selectedForexPair].decimals)}
-          </div>
-          <div style={{ position: "absolute", left: 0, bottom: 12, fontSize: "8px", color: "var(--muted)" }}>
-            Low: {forexMinMax.min.toFixed(FOREX_PAIRS[selectedForexPair].decimals)}
-          </div>
-
           <svg width="100%" height="85" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
             <defs>
               <linearGradient id="forexAreaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -580,9 +613,20 @@ export default function MiniChartsGrid() {
             </defs>
 
             {/* Grid Lines */}
-            <line x1="10" y1="15" x2={svgWidth - 20} y2="15" stroke="#1c1c22" strokeWidth="0.5" />
-            <line x1="10" y1="45" x2={svgWidth - 20} y2="45" stroke="#1c1c22" strokeWidth="0.5" />
-            <line x1="10" y1="75" x2={svgWidth - 20} y2="75" stroke="#1c1c22" strokeWidth="0.5" />
+            <line x1="10" y1="15" x2={chartAreaWidth} y2="15" stroke="#1c1c22" strokeWidth="0.5" />
+            <line x1="10" y1="45" x2={chartAreaWidth} y2="45" stroke="#1c1c22" strokeWidth="0.5" />
+            <line x1="10" y1="75" x2={chartAreaWidth} y2="75" stroke="#1c1c22" strokeWidth="0.5" />
+
+            {/* Y-Axis Value Labels */}
+            <text x={chartAreaWidth + 8} y="18" fill="var(--muted)" fontSize="9" fontWeight="600">
+              {formatYValue(forexMinMax.max, "forex")}
+            </text>
+            <text x={chartAreaWidth + 8} y="48" fill="var(--muted)" fontSize="9" fontWeight="600">
+              {formatYValue((forexMinMax.max + forexMinMax.min) / 2, "forex")}
+            </text>
+            <text x={chartAreaWidth + 8} y="78" fill="var(--muted)" fontSize="9" fontWeight="600">
+              {formatYValue(forexMinMax.min, "forex")}
+            </text>
 
             {/* Area Path */}
             {forexPoints.length > 0 && (
@@ -597,13 +641,13 @@ export default function MiniChartsGrid() {
               strokeWidth="2"
             />
 
-            {/* Live Ticking Horizontal Guideline & Badge */}
+            {/* Live Ticking Horizontal Guideline */}
             {forexPoints.length > 0 && (
               <>
                 <line
                   x1="10"
                   y1={forexPoints[forexPoints.length - 1].y}
-                  x2={svgWidth - 20}
+                  x2={chartAreaWidth}
                   y2={forexPoints[forexPoints.length - 1].y}
                   stroke="rgba(56, 189, 248, 0.4)"
                   strokeDasharray="2,2"
@@ -620,7 +664,7 @@ export default function MiniChartsGrid() {
             )}
           </svg>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
+        <div style={{ display: "flex", width: `${chartAreaWidth}px`, justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
           {forexTimeframe === "1s" && (
             <>
               <span>-60s</span>
@@ -649,10 +693,31 @@ export default function MiniChartsGrid() {
               <span>Now (5m)</span>
             </>
           )}
+          {forexTimeframe === "15m" && (
+            <>
+              <span>-15h</span>
+              <span>-7.5h</span>
+              <span>Now (15m)</span>
+            </>
+          )}
+          {forexTimeframe === "1h" && (
+            <>
+              <span>-60h</span>
+              <span>-30h</span>
+              <span>Now (1h)</span>
+            </>
+          )}
+          {forexTimeframe === "4h" && (
+            <>
+              <span>-10d</span>
+              <span>-5d</span>
+              <span>Now (4h)</span>
+            </>
+          )}
         </div>
       </div>
 
-      {/* CARD 3: Central Bank Interest Rates - LIVE AREA CHART */}
+      {/* CARD 3: Central Bank Interest Rates */}
       <div className="mini-chart-card" style={cardStyle}>
         <div style={cardHeaderStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -745,15 +810,8 @@ export default function MiniChartsGrid() {
           </span>
         </div>
 
-        {/* Live Area Chart */}
+        {/* Interest Rates SVG Chart with Grid and Y-axis Labels */}
         <div style={{ flex: 1, position: "relative", minHeight: "85px" }}>
-          <div style={{ position: "absolute", left: 0, top: 0, fontSize: "8px", color: "var(--muted)" }}>
-            High: {interestMinMax.max.toFixed(2)}%
-          </div>
-          <div style={{ position: "absolute", left: 0, bottom: 12, fontSize: "8px", color: "var(--muted)" }}>
-            Low: {interestMinMax.min.toFixed(2)}%
-          </div>
-
           <svg width="100%" height="85" viewBox={`0 0 ${svgWidth} ${svgHeight}`} preserveAspectRatio="none">
             <defs>
               <linearGradient id="interestAreaGrad" x1="0" y1="0" x2="0" y2="1">
@@ -763,9 +821,20 @@ export default function MiniChartsGrid() {
             </defs>
 
             {/* Grid Lines */}
-            <line x1="10" y1="15" x2={svgWidth - 20} y2="15" stroke="#1c1c22" strokeWidth="0.5" />
-            <line x1="10" y1="45" x2={svgWidth - 20} y2="45" stroke="#1c1c22" strokeWidth="0.5" />
-            <line x1="10" y1="75" x2={svgWidth - 20} y2="75" stroke="#1c1c22" strokeWidth="0.5" />
+            <line x1="10" y1="15" x2={chartAreaWidth} y2="15" stroke="#1c1c22" strokeWidth="0.5" />
+            <line x1="10" y1="45" x2={chartAreaWidth} y2="45" stroke="#1c1c22" strokeWidth="0.5" />
+            <line x1="10" y1="75" x2={chartAreaWidth} y2="75" stroke="#1c1c22" strokeWidth="0.5" />
+
+            {/* Y-Axis Value Labels */}
+            <text x={chartAreaWidth + 8} y="18" fill="var(--muted)" fontSize="9" fontWeight="600">
+              {formatYValue(interestMinMax.max, "interest")}
+            </text>
+            <text x={chartAreaWidth + 8} y="48" fill="var(--muted)" fontSize="9" fontWeight="600">
+              {formatYValue((interestMinMax.max + interestMinMax.min) / 2, "interest")}
+            </text>
+            <text x={chartAreaWidth + 8} y="78" fill="var(--muted)" fontSize="9" fontWeight="600">
+              {formatYValue(interestMinMax.min, "interest")}
+            </text>
 
             {/* Area Path */}
             {interestPoints.length > 0 && (
@@ -786,7 +855,7 @@ export default function MiniChartsGrid() {
                 <line
                   x1="10"
                   y1={interestPoints[interestPoints.length - 1].y}
-                  x2={svgWidth - 20}
+                  x2={chartAreaWidth}
                   y2={interestPoints[interestPoints.length - 1].y}
                   stroke="rgba(251, 191, 36, 0.4)"
                   strokeDasharray="2,2"
@@ -803,7 +872,7 @@ export default function MiniChartsGrid() {
             )}
           </svg>
         </div>
-        <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
+        <div style={{ display: "flex", width: `${chartAreaWidth}px`, justifyContent: "space-between", fontSize: "9px", color: "var(--muted)", marginTop: "2px" }}>
           {forexTimeframe === "1s" && (
             <>
               <span>-60s</span>
@@ -832,10 +901,31 @@ export default function MiniChartsGrid() {
               <span>Now (5m)</span>
             </>
           )}
+          {forexTimeframe === "15m" && (
+            <>
+              <span>-15h</span>
+              <span>-7.5h</span>
+              <span>Now (15m)</span>
+            </>
+          )}
+          {forexTimeframe === "1h" && (
+            <>
+              <span>-60h</span>
+              <span>-30h</span>
+              <span>Now (1h)</span>
+            </>
+          )}
+          {forexTimeframe === "4h" && (
+            <>
+              <span>-10d</span>
+              <span>-5d</span>
+              <span>Now (4h)</span>
+            </>
+          )}
         </div>
       </div>
 
-      {/* CARD 4: Economic Calendar News Feed - SCROLLABLE FOR ALL */}
+      {/* CARD 4: Economic Calendar News Feed */}
       <div className="mini-chart-card" style={cardStyle}>
         <div style={cardHeaderStyle}>
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
@@ -855,7 +945,6 @@ export default function MiniChartsGrid() {
           </div>
         </div>
 
-        {/* Scrollable Container with custom styling */}
         <div className="custom-news-scrollbar" style={{ display: "flex", flexDirection: "column", gap: "8px", overflowY: "auto", height: "145px", paddingRight: "4px" }}>
           {filteredNews.map(item => (
             <div
