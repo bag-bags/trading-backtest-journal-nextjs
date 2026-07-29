@@ -2,15 +2,24 @@ import { NextResponse } from "next/server";
 import fs from "fs";
 import path from "path";
 
-// Helper to get all CSV files in the project root
+// Helper to get target backtests directory
+function getBacktestsDir() {
+  const targetDir = path.join(process.cwd(), "backtests");
+  if (!fs.existsSync(targetDir)) {
+    fs.mkdirSync(targetDir, { recursive: true });
+  }
+  return targetDir;
+}
+
+// Helper to get all CSV files inside the backtests folder
 function getCsvFiles() {
   try {
-    const rootDir = process.cwd();
-    const files = fs.readdirSync(rootDir);
+    const targetDir = getBacktestsDir();
+    const files = fs.readdirSync(targetDir);
     const csvFiles = files.filter(f => f.endsWith(".csv"));
     
     return csvFiles.map(filename => {
-      const filePath = path.join(rootDir, filename);
+      const filePath = path.join(targetDir, filename);
       const content = fs.readFileSync(filePath, "utf-8");
       const isArchived = filename.startsWith("[ARCHIVE]");
       return {
@@ -20,12 +29,11 @@ function getCsvFiles() {
       };
     });
   } catch (e) {
-    // If reading root directory fails (e.g. restricted env), return empty
     return [];
   }
 }
 
-// GET: List all CSV files
+// GET: List all CSV files in backtests folder
 export async function GET() {
   try {
     const files = getCsvFiles();
@@ -35,7 +43,7 @@ export async function GET() {
   }
 }
 
-// POST: Add a trade to manual-trades.csv
+// POST: Add a trade to manual-trades.csv inside backtests folder
 export async function POST(req) {
   try {
     const { trade } = await req.json();
@@ -44,7 +52,8 @@ export async function POST(req) {
     }
 
     const filename = "manual-trades.csv";
-    const filePath = path.join(process.cwd(), filename);
+    const targetDir = getBacktestsDir();
+    const filePath = path.join(targetDir, filename);
     
     const headers = "Symbol,Type,Volume,Open Price,Close Price,Open Time,Close Time,Profit\n";
     
@@ -73,7 +82,6 @@ export async function POST(req) {
       }
       return NextResponse.json({ success: true, files: getCsvFiles() });
     } catch (fsErr) {
-      // Graceful fallback for read-only filesystem (like Vercel serverless)
       return NextResponse.json({ 
         success: true, 
         isReadOnly: true, 
@@ -85,13 +93,12 @@ export async function POST(req) {
   }
 }
 
-// PUT: Rename, Archive/Unarchive or modify file content
+// PUT: Rename, Archive/Unarchive or modify file content in backtests folder
 export async function PUT(req) {
   try {
     const { oldName, newName, archive, content } = await req.json();
-    const rootDir = process.cwd();
-    
-    const oldPath = path.join(rootDir, oldName);
+    const targetDir = getBacktestsDir();
+    const oldPath = path.join(targetDir, oldName);
 
     try {
       if (content !== undefined) {
@@ -122,7 +129,7 @@ export async function PUT(req) {
       }
 
       if (targetName && targetName !== oldName) {
-        const newPath = path.join(rootDir, targetName);
+        const newPath = path.join(targetDir, targetName);
         fs.renameSync(oldPath, newPath);
       }
 
@@ -139,7 +146,7 @@ export async function PUT(req) {
   }
 }
 
-// DELETE: Delete a CSV file
+// DELETE: Delete a CSV file in backtests folder
 export async function DELETE(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -149,7 +156,8 @@ export async function DELETE(req) {
     }
 
     try {
-      const filePath = path.join(process.cwd(), name);
+      const targetDir = getBacktestsDir();
+      const filePath = path.join(targetDir, name);
       if (fs.existsSync(filePath)) {
         fs.unlinkSync(filePath);
       }

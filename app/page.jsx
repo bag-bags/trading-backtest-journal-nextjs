@@ -342,6 +342,52 @@ export default function Home() {
     }
   };
 
+  const handleSaveCurrentListAsCsv = async () => {
+    setError("");
+    const rawName = window.prompt("Save current trade list as a new CSV backtest file. Enter name (e.g. backtest_gold):");
+    if (!rawName) return;
+    
+    let fileName = rawName.trim();
+    if (!fileName) return;
+    
+    if (!fileName.toLowerCase().endsWith(".csv")) {
+      fileName += ".csv";
+    }
+
+    try {
+      const headers = "Symbol,Type,Volume,Open Price,Close Price,Open Time,Close Time,Profit\n";
+      const rows = trades.map((t) =>
+        `${t.symbol},${t.type},${t.volume},${t.openPrice},${t.closePrice},${formatCsvDate(t.openTime)},${formatCsvDate(t.closeTime)},${t.profit}`
+      ).join("\n");
+      const rawContent = headers + rows;
+
+      const res = await fetch("/api/journal-files", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldName: fileName, content: rawContent })
+      });
+      
+      if (res.ok) {
+        const payload = await res.json();
+        if (payload.files) {
+          setJournalFiles(payload.files);
+          setActiveFileName(fileName);
+          localStorage.setItem("active_journal_file_name", fileName);
+          
+          const saved = JSON.parse(localStorage.getItem("journal_files") || "[]");
+          const updatedFiles = [...saved.filter(f => f.name !== fileName), { name: fileName, content: rawContent }];
+          localStorage.setItem("journal_files", JSON.stringify(updatedFiles));
+          
+          setImportMessage(`Saved new backtest file: ${fileName}`);
+        }
+      } else {
+        throw new Error("Failed to write file to server.");
+      }
+    } catch (err) {
+      setError(`Save Error: ${err.message}`);
+    }
+  };
+
   const handleWheel = (e) => {
     e.preventDefault();
     if (e.deltaY < 0) {
@@ -1151,6 +1197,23 @@ export default function Home() {
                 }}
               >
                 📋 Paste Clipboard
+              </button>
+              <button
+                onClick={handleSaveCurrentListAsCsv}
+                style={{
+                  background: "linear-gradient(135deg, #fbbf24, #d97706)",
+                  border: "none",
+                  color: "#000",
+                  padding: "6px 14px",
+                  borderRadius: "6px",
+                  cursor: "pointer",
+                  fontSize: "12px",
+                  fontWeight: "700",
+                  letterSpacing: "0.2px",
+                  boxShadow: "0 2px 8px rgba(251, 191, 36, 0.3)"
+                }}
+              >
+                💾 Save CSV
               </button>
               <button 
                 onClick={() => setIsFullscreenTrades(!isFullscreenTrades)}
