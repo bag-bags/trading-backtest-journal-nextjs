@@ -108,12 +108,16 @@ export default function Home() {
           setJournalFiles(payload.files);
         }
         if (payload.googleDrive && payload.googleDrive.success) {
-          setImportMessage(`Saved and Synced ${targetFileName} to Google Drive!`);
+          setImportMessage(`Saved successfully! Synced to Google Sheets tab "${payload.googleDrive.tabName}".`);
+          setError("");
         } else if (payload.googleDrive) {
-          setImportMessage(`Saved ${targetFileName} (Local only: ${payload.googleDrive.reason})`);
+          setImportMessage(`Saved locally to ${targetFileName}.`);
+          setError(`Google Sheets Sync Error: ${payload.googleDrive.reason}`);
         }
       }
-    } catch (_) {}
+    } catch (e) {
+      setError(`Save Error: ${e.message}`);
+    }
   };
 
   const handleDeleteTrade = (tradeToDelete, e) => {
@@ -383,13 +387,13 @@ export default function Home() {
           const updatedFiles = [...saved.filter(f => f.name !== fileName), { name: fileName, content: rawContent }];
           localStorage.setItem("journal_files", JSON.stringify(updatedFiles));
           
-          let statusMsg = `Saved new backtest file: ${fileName}`;
           if (payload.googleDrive && payload.googleDrive.success) {
-            statusMsg += ` (Synced to Google Drive!)`;
+            setImportMessage(`Saved new backtest file "${fileName}" and Synced to Google Sheets tab "${payload.googleDrive.tabName}"!`);
+            setError("");
           } else if (payload.googleDrive) {
-            statusMsg += ` (Local only: ${payload.googleDrive.reason})`;
+            setImportMessage(`Saved new backtest file "${fileName}" locally.`);
+            setError(`Google Sheets Sync Error: ${payload.googleDrive.reason}`);
           }
-          setImportMessage(statusMsg);
         }
       } else {
         throw new Error("Failed to write file to server.");
