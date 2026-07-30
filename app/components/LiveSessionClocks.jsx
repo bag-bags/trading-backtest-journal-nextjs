@@ -2,13 +2,6 @@
 
 import { useEffect, useState } from "react";
 
-const SESSIONS = [
-  { name: "Tokyo / Asian", flag: "🌸", startUtc: 0, endUtc: 8, color: "#a855f7" },
-  { name: "London", flag: "🇬🇧", startUtc: 8, endUtc: 16, color: "#38bdf8" },
-  { name: "New York", flag: "🇺🇸", startUtc: 13, endUtc: 21, color: "#f97316" },
-  { name: "Sydney", flag: "🇦🇺", startUtc: 22, endUtc: 7, color: "#10b981" },
-];
-
 const SESS_TR = {
   en: {
     title: "Live Market Trading Sessions",
@@ -69,14 +62,38 @@ export default function LiveSessionClocks({ lang = "en" }) {
     return () => clearInterval(timer);
   }, []);
 
+  const getTimezoneOffset = (timeZone, date) => {
+    try {
+      const tz = date.toLocaleString("en-US", { timeZone, timeZoneName: "longOffset" });
+      const match = tz.match(/GMT([+-]\d+)(?::(\d+))?/);
+      if (!match) return 0;
+      const hours = parseInt(match[1], 10);
+      const minutes = match[2] ? parseInt(match[2], 10) : 0;
+      return hours + (hours >= 0 ? minutes / 60 : -minutes / 60);
+    } catch (e) {
+      // Fallback offsets if timezone name lookup fails
+      if (timeZone === "Asia/Tokyo") return 9;
+      if (timeZone === "Europe/London") return 1; // Summer BST fallback
+      if (timeZone === "America/New_York") return -4; // Summer EDT fallback
+      if (timeZone === "Australia/Sydney") return 10; // Winter AEST fallback
+      return 0;
+    }
+  };
+
   const getSessionState = (session) => {
+    const offset = getTimezoneOffset(session.timezone, now);
+    
+    // Calculate startUtc and endUtc dynamically
+    const startUtc = (session.localStart - offset + 24) % 24;
+    const endUtc = (session.localEnd - offset + 24) % 24;
+
     const utcHours = now.getUTCHours();
     const utcMinutes = now.getUTCMinutes();
     const utcSeconds = now.getUTCSeconds();
     const currentTotalSec = utcHours * 3600 + utcMinutes * 60 + utcSeconds;
 
-    let startSec = session.startUtc * 3600;
-    let endSec = session.endUtc * 3600;
+    let startSec = startUtc * 3600;
+    let endSec = endUtc * 3600;
 
     let isActive = false;
     let remainingSec = 0;
@@ -96,7 +113,7 @@ export default function LiveSessionClocks({ lang = "en" }) {
       }
     } else {
       // Overnight session (e.g. Sydney 22:00 - 07:00)
-      totalDurationSec = (24 - session.startUtc + session.endUtc) * 3600;
+      totalDurationSec = (24 - startUtc + endUtc) * 3600;
       if (currentTotalSec >= startSec || currentTotalSec < endSec) {
         isActive = true;
         if (currentTotalSec >= startSec) {
@@ -126,6 +143,21 @@ export default function LiveSessionClocks({ lang = "en" }) {
     return { isActive, remainingText: formatTime(remainingSec), pct };
   };
 
+  const getMoroccoTimeText = () => {
+    try {
+      return now.toLocaleTimeString("en-US", { timeZone: "Africa/Casablanca", hour12: false });
+    } catch (e) {
+      return new Date(now.getTime() + 3600000).toUTCString().slice(17, 25);
+    }
+  };
+
+  const SESSIONS_CONFIG = [
+    { name: "Tokyo / Asian", flag: "🌸", timezone: "Asia/Tokyo", localStart: 9, localEnd: 17, color: "#a855f7" },
+    { name: "London", flag: "🇬🇧", timezone: "Europe/London", localStart: 8, localEnd: 16, color: "#38bdf8" },
+    { name: "New York", flag: "🇺🇸", timezone: "America/New_York", localStart: 8, localEnd: 16, color: "#f97316" },
+    { name: "Sydney", flag: "🇦🇺", timezone: "Australia/Sydney", localStart: 8, localEnd: 17, color: "#10b981" },
+  ];
+
   return (
     <div style={{ background: "#111113", border: "1px solid #222225", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
@@ -134,12 +166,12 @@ export default function LiveSessionClocks({ lang = "en" }) {
           <span style={{ color: "#888893", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>{trans.title}</span>
         </div>
         <div suppressHydrationWarning style={{ fontSize: "12px", fontWeight: "700", color: "#a3e635", background: "#050506", padding: "4px 10px", borderRadius: "6px", border: "1px solid #222225" }}>
-          🇲🇦 {trans.utcTime}: {mounted ? new Date(now.getTime() + 3600000).toUTCString().slice(17, 25) : "--:--:--"}
+          🇲🇦 {trans.utcTime}: {mounted ? getMoroccoTimeText() : "--:--:--"}
         </div>
       </div>
 
       <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(210px, 1fr))", gap: "10px" }}>
-        {SESSIONS.map((session) => {
+        {SESSIONS_CONFIG.map((session) => {
           const { isActive, remainingText, pct } = mounted 
             ? getSessionState(session) 
             : { isActive: false, remainingText: "--h --m --s", pct: 0 };
