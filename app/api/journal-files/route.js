@@ -29,7 +29,9 @@ async function saveToGoogleSheets(filename, csvContent) {
 
     const sheets = google.sheets({ version: "v4", auth });
     const spreadsheetId = "1QWu1FSZTzVlymyaoeh77HdXnrEKDJRErI0y1ovqc3YA";
-    const tabName = filename.replace(/\.csv$/i, "");
+    // Strip prefix if any
+    const cleanName = filename.replace(/^🟢 \[Sheets\] /i, "");
+    const tabName = cleanName.replace(/\.csv$/i, "");
 
     // 1. Ensure the sheet tab exists
     try {
@@ -84,32 +86,71 @@ function getBacktestsDir() {
   return targetDir;
 }
 
-// Helper to get all CSV files inside the backtests folder
-function getCsvFiles() {
+// Helper to get all CSV files inside the backtests folder and active Google Sheets tabs
+async function getCsvFiles() {
+  const allFiles = [];
+
+  // 1. Load local files
   try {
     const targetDir = getBacktestsDir();
-    const files = fs.readdirSync(targetDir);
-    const csvFiles = files.filter(f => f.endsWith(".csv"));
-    
-    return csvFiles.map(filename => {
-      const filePath = path.join(targetDir, filename);
-      const content = fs.readFileSync(filePath, "utf-8");
-      const isArchived = filename.startsWith("[ARCHIVE]");
-      return {
-        name: filename,
-        content: content,
-        isArchived: isArchived
-      };
-    });
+    if (fs.existsSync(targetDir)) {
+      const files = fs.readdirSync(targetDir);
+      const csvFiles = files.filter(f => f.endsWith(".csv"));
+      for (const filename of csvFiles) {
+        const filePath = path.join(targetDir, filename);
+        const content = fs.readFileSync(filePath, "utf-8");
+        const isArchived = filename.startsWith("[ARCHIVE]");
+        allFiles.push({
+          name: filename,
+          content: content,
+          isArchived: isArchived
+        });
+      }
+    }
   } catch (e) {
-    return [];
+    console.error("Error reading local backtests:", e);
   }
+
+  // 2. Load Google Sheets tabs
+  try {
+    const auth = await getGoogleSheetsAuth();
+    if (auth) {
+      const sheets = google.sheets({ version: "v4", auth });
+      const spreadsheetId = "1QWu1FSZTzVlymyaoeh77HdXnrEKDJRErI0y1ovqc3YA";
+      
+      const sheetMeta = await sheets.spreadsheets.get({ spreadsheetId });
+      const sheetNames = sheetMeta.data.sheets.map(s => s.properties.title);
+
+      if (sheetNames.length > 0) {
+        const batchResponse = await sheets.spreadsheets.values.batchGet({
+          spreadsheetId,
+          ranges: sheetNames.map(name => `'${name}'!A:Z`)
+        });
+
+        sheetNames.forEach((name, index) => {
+          const valueRange = batchResponse.data.valueRanges[index];
+          const rows = valueRange.values || [];
+          const csvContent = rows.map(r => r.join(",")).join("\n");
+          allFiles.push({
+            name: `🟢 [Sheets] ${name}`,
+            content: csvContent,
+            isGoogleSheet: true,
+            sheetTabName: name
+          });
+        });
+      }
+    }
+  } catch (err) {
+    console.error("Error reading Google Sheets tabs:", err);
+  }
+
+  return allFiles;
 }
 
-// GET: List all CSV files in backtests folder
+// GET: List all CSV files (local & Google Sheet tabs)
 export async function GET() {
   try {
-    const files = getCsvFiles();
+    const files = await getCsvFiles();
     return NextResponse.json({ files });
   } catch (error) {
     return NextResponse.json({ files: [] });
@@ -159,10 +200,11 @@ export async function POST(req) {
       
       // Sync with Google Sheets
       const gdStatus = await saveToGoogleSheets(filename, fileContent);
+      const updatedFiles = await getCsvFiles();
 
       return NextResponse.json({ 
         success: true, 
-        files: getCsvFiles(), 
+        files: updatedFiles, 
         googleDrive: gdStatus 
       });
     } catch (fsErr) {
@@ -177,53 +219,61 @@ export async function POST(req) {
   }
 }
 
-// PUT: Rename, Archive/Unarchive or modify file content in backtests folder
+// PUT: Rename, Archive/Unarchive or modify file content
 export async function PUT(req) {
   try {
     const { oldName, newName, archive, content } = await req.json();
     const targetDir = getBacktestsDir();
-    const oldPath = path.join(targetDir, oldName);
+
+    // If it's a Google Sheet sync, bypass local file paths
+    const isGoogleSheet = oldName.startsWith("🟢 [Sheets] ");
+    const cleanOldName = oldName.replace(/^🟢 \[Sheets\] /i, "");
+    const cleanNewName = newName ? newName.replace(/^🟢 \[Sheets\] /i, "") : null;
 
     try {
-      if (content !== undefined) {
-        fs.writeFileSync(oldPath, content, "utf-8");
-      } else if (!fs.existsSync(oldPath)) {
-        return NextResponse.json({ error: "File not found" }, { status: 404 });
-      }
+      if (!isGoogleSheet) {
+        const oldPath = path.join(targetDir, cleanOldName);
+        if (content !== undefined) {
+          fs.writeFileSync(oldPath, content, "utf-8");
+        } else if (!fs.existsSync(oldPath)) {
+          return NextResponse.json({ error: "File not found" }, { status: 404 });
+        }
 
-      let targetName = newName;
-      if (archive !== undefined) {
-        if (archive) {
-          if (!oldName.startsWith("[ARCHIVE] ")) {
-            targetName = `[ARCHIVE] ${oldName}`;
+        let targetName = cleanNewName || cleanOldName;
+        if (archive !== undefined) {
+          if (archive) {
+            if (!cleanOldName.startsWith("[ARCHIVE] ")) {
+              targetName = `[ARCHIVE] ${cleanOldName}`;
+            }
           } else {
-            targetName = oldName;
+            if (cleanOldName.startsWith("[ARCHIVE] ")) {
+              targetName = cleanOldName.replace("[ARCHIVE] ", "");
+            }
           }
-        } else {
-          if (oldName.startsWith("[ARCHIVE] ")) {
-            targetName = oldName.replace("[ARCHIVE] ", "");
-          } else {
-            targetName = oldName;
-          }
+        }
+
+        if (targetName && !targetName.endsWith(".csv")) {
+          targetName += ".csv";
+        }
+
+        if (targetName && targetName !== cleanOldName) {
+          const newPath = path.join(targetDir, targetName);
+          fs.renameSync(oldPath, newPath);
         }
       }
 
-      if (targetName && !targetName.endsWith(".csv")) {
-        targetName += ".csv";
-      }
-
-      if (targetName && targetName !== oldName) {
-        const newPath = path.join(targetDir, targetName);
-        fs.renameSync(oldPath, newPath);
-      }
-
       // Sync active CSV content with Google Sheets
-      const activeContent = content !== undefined ? content : fs.readFileSync(path.join(targetDir, targetName || oldName), "utf-8");
-      const gdStatus = await saveToGoogleSheets(targetName || oldName, activeContent);
+      const activeContent = content !== undefined ? content : (isGoogleSheet ? "" : fs.readFileSync(path.join(targetDir, cleanNewName || cleanOldName), "utf-8"));
+      let gdStatus = null;
+      if (activeContent) {
+        gdStatus = await saveToGoogleSheets(cleanNewName || cleanOldName, activeContent);
+      }
+
+      const updatedFiles = await getCsvFiles();
 
       return NextResponse.json({ 
         success: true, 
-        files: getCsvFiles(), 
+        files: updatedFiles, 
         googleDrive: gdStatus 
       });
     } catch (fsErr) {
@@ -238,7 +288,7 @@ export async function PUT(req) {
   }
 }
 
-// DELETE: Delete a CSV file in backtests folder
+// DELETE: Delete a CSV file
 export async function DELETE(req) {
   try {
     const { searchParams } = new URL(req.url);
@@ -248,12 +298,39 @@ export async function DELETE(req) {
     }
 
     try {
-      const targetDir = getBacktestsDir();
-      const filePath = path.join(targetDir, name);
-      if (fs.existsSync(filePath)) {
-        fs.unlinkSync(filePath);
+      const isGoogleSheet = name.startsWith("🟢 [Sheets] ");
+      if (!isGoogleSheet) {
+        const targetDir = getBacktestsDir();
+        const filePath = path.join(targetDir, name);
+        if (fs.existsSync(filePath)) {
+          fs.unlinkSync(filePath);
+        }
+      } else {
+        // If they delete a Google Sheets tab item from UI, we can clear the values or delete the tab via API
+        const auth = await getGoogleSheetsAuth();
+        if (auth) {
+          const sheets = google.sheets({ version: "v4", auth });
+          const spreadsheetId = "1QWu1FSZTzVlymyaoeh77HdXnrEKDJRErI0y1ovqc3YA";
+          const tabName = name.replace(/^🟢 \[Sheets\] /i, "");
+          const sheetMeta = await sheets.spreadsheets.get({ spreadsheetId });
+          const targetSheet = sheetMeta.data.sheets.find(s => s.properties.title === tabName);
+          if (targetSheet) {
+            await sheets.spreadsheets.batchUpdate({
+              spreadsheetId,
+              requestBody: {
+                requests: [{
+                  deleteSheet: {
+                    sheetId: targetSheet.properties.sheetId
+                  }
+                }]
+              }
+            });
+          }
+        }
       }
-      return NextResponse.json({ success: true, files: getCsvFiles() });
+
+      const updatedFiles = await getCsvFiles();
+      return NextResponse.json({ success: true, files: updatedFiles });
     } catch (fsErr) {
       return NextResponse.json({ 
         success: true, 
