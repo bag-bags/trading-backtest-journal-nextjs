@@ -83,9 +83,9 @@ export default function LiveSessionClocks({ lang = "en" }) {
   const getSessionState = (session) => {
     const offset = getTimezoneOffset(session.timezone, now);
     
-    // Calculate startUtc and endUtc dynamically
-    const startUtc = (session.localStart - offset + 24) % 24;
-    const endUtc = (session.localEnd - offset + 24) % 24;
+    // Calculate startUtc and endUtc dynamically and subtract 1 hour
+    const startUtc = (session.localStart - offset - 1 + 24) % 24;
+    const endUtc = (session.localEnd - offset - 1 + 24) % 24;
 
     const utcHours = now.getUTCHours();
     const utcMinutes = now.getUTCMinutes();
