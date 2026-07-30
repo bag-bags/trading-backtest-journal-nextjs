@@ -89,6 +89,7 @@ function getBacktestsDir() {
 // Helper to get all CSV files inside the backtests folder and active Google Sheets tabs
 async function getCsvFiles() {
   const allFiles = [];
+  let googleSheetsError = null;
 
   // 1. Load local files
   try {
@@ -139,21 +140,24 @@ async function getCsvFiles() {
           });
         });
       }
+    } else {
+      googleSheetsError = "Google Sheets credentials (email/private key) are not set in .env.local";
     }
   } catch (err) {
     console.error("Error reading Google Sheets tabs:", err);
+    googleSheetsError = err.message;
   }
 
-  return allFiles;
+  return { allFiles, googleSheetsError };
 }
 
 // GET: List all CSV files (local & Google Sheet tabs)
 export async function GET() {
   try {
-    const files = await getCsvFiles();
-    return NextResponse.json({ files });
+    const { allFiles, googleSheetsError } = await getCsvFiles();
+    return NextResponse.json({ files: allFiles, googleSheetsError });
   } catch (error) {
-    return NextResponse.json({ files: [] });
+    return NextResponse.json({ files: [], googleSheetsError: error.message });
   }
 }
 

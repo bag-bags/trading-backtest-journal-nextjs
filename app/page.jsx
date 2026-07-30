@@ -43,6 +43,7 @@ export default function Home() {
   const [selectedIndex, setSelectedIndex] = useState(0);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState("");
+  const [googleSheetsError, setGoogleSheetsError] = useState("");
   const [importMessage, setImportMessage] = useState("Loading journal...");
   const [journalFiles, setJournalFiles] = useState([]);
   const [activeFileName, setActiveFileName] = useState("");
@@ -542,9 +543,16 @@ export default function Home() {
         const res = await fetch("/api/journal-files");
         const payload = await res.json();
         let files = [];
-        if (res.ok && payload.files && payload.files.length > 0) {
-          files = payload.files;
-          localStorage.setItem("journal_files", JSON.stringify(files));
+        if (res.ok) {
+          if (payload.googleSheetsError) {
+            setGoogleSheetsError(payload.googleSheetsError);
+          } else {
+            setGoogleSheetsError("");
+          }
+          if (payload.files && payload.files.length > 0) {
+            files = payload.files;
+            localStorage.setItem("journal_files", JSON.stringify(files));
+          }
         } else {
           const stored = localStorage.getItem("journal_files");
           if (stored) {
@@ -948,6 +956,11 @@ export default function Home() {
 
         <section className="section">
           <h2>{t.savedJournals}</h2>
+          {googleSheetsError && (
+            <p className="error" style={{ color: "#ef4444", fontSize: "11px", margin: "0 0 8px 0", background: "rgba(239, 68, 68, 0.08)", padding: "6px", borderRadius: "4px", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
+              ⚠️ Google Sheet Sync: {googleSheetsError}
+            </p>
+          )}
           <div className="fileList" style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "160px", overflowY: "auto", paddingRight: "4px" }}>
             {journalFiles.length === 0 && <p className="muted" style={{ fontSize: "11px" }}>{t.noSavedFiles}</p>}
             {journalFiles.map((file) => {
