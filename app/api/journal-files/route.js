@@ -5,10 +5,16 @@ import { google } from "googleapis";
 
 // Helper to get Google Sheets client auth
 async function getGoogleSheetsAuth() {
-  const clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
-  const privateKey = process.env.GOOGLE_PRIVATE_KEY;
+  let clientEmail = process.env.GOOGLE_CLIENT_EMAIL;
+  let privateKey = process.env.GOOGLE_PRIVATE_KEY;
   if (!clientEmail || !privateKey) {
     return null;
+  }
+  if (clientEmail.startsWith('"') && clientEmail.endsWith('"')) {
+    clientEmail = clientEmail.slice(1, -1);
+  }
+  if (privateKey.startsWith('"') && privateKey.endsWith('"')) {
+    privateKey = privateKey.slice(1, -1);
   }
   const formattedKey = privateKey.replace(/\\n/g, "\n");
   return new google.auth.JWT(
