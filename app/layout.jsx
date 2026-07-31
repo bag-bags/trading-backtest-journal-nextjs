@@ -1,7 +1,7 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "Soufiane Trade",
+  title: "#bdl79",
   description: "For easily backtesting — OHLC market data, trade review, and multi-timeframe charting."
 };
 

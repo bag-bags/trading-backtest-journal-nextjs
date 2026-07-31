@@ -896,9 +896,9 @@ export default function Home() {
       <aside className={`sidebar ${mobileMenuOpen ? "open" : ""}`}>
         <div className="brand" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span className="mark">ST</span>
+            <span className="mark">BDL</span>
             <div>
-              <h1>Soufiane Trade</h1>
+              <h1>#bdl79</h1>
               <p style={{ margin: 0, fontSize: "11px", color: "#888893" }}>{t.forEasilyBacktesting}</p>
             </div>
           </div>
