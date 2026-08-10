@@ -982,11 +982,6 @@ export default function Home() {
 
         <section className="section">
           <h2>{t.savedJournals}</h2>
-          {googleSheetsError && (
-            <p className="error" style={{ color: "#ef4444", fontSize: "11px", margin: "0 0 8px 0", background: "rgba(239, 68, 68, 0.08)", padding: "6px", borderRadius: "4px", border: "1px solid rgba(239, 68, 68, 0.2)" }}>
-              ⚠️ Google Sheet Sync: {googleSheetsError}
-            </p>
-          )}
           <div className="fileList" style={{ display: "flex", flexDirection: "column", gap: "6px", maxHeight: "160px", overflowY: "auto", paddingRight: "4px" }}>
             {journalFiles.length === 0 && <p className="muted" style={{ fontSize: "11px" }}>{t.noSavedFiles}</p>}
             {journalFiles.map((file) => {
