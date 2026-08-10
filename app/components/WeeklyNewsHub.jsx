@@ -30,7 +30,15 @@ const NEWS_TR = {
     frequency: "⏰ Frequency",
     sourceLink: "Source ↗",
     week: "Week",
-    of: "of"
+    of: "of",
+    goldBiasTitle: "Gold Market Sentiment Bias",
+    goldBiasSubtitle: "Calculated based on this week's macroeconomic high-impact events",
+    sentimentMeter: "Sentiment Meter",
+    keyDrivers: "Key Macro Drivers",
+    explanationLabel: "Explanation",
+    biasBullish: "Bullish",
+    biasBearish: "Bearish",
+    biasNeutral: "Neutral"
   },
   fr: {
     title: "Nouvelles les Plus Importantes de la Semaine",
@@ -46,7 +54,15 @@ const NEWS_TR = {
     frequency: "⏰ Fréquence",
     sourceLink: "Source ↗",
     week: "Semaine",
-    of: "de"
+    of: "de",
+    goldBiasTitle: "Biais de Sentiment de l'Or",
+    goldBiasSubtitle: "Calculé à partir des événements macroéconomiques de la semaine",
+    sentimentMeter: "Jauge de Sentiment",
+    keyDrivers: "Moteurs Macro Clés",
+    explanationLabel: "Explication",
+    biasBullish: "Haussier",
+    biasBearish: "Baissier",
+    biasNeutral: "Neutre"
   },
   ar: {
     title: "أهم الأخبار الاقتصادية هذا الأسبوع للمتداولين",
@@ -62,7 +78,15 @@ const NEWS_TR = {
     frequency: "⏰ التكرار",
     sourceLink: "المصدر ↗",
     week: "الأسبوع",
-    of: "من"
+    of: "من",
+    goldBiasTitle: "انحياز معنويات سوق الذهب",
+    goldBiasSubtitle: "محسوب بناءً على الأحداث الماكرو-اقتصادية الهامة هذا الأسبوع",
+    sentimentMeter: "مقياس المعنويات",
+    keyDrivers: "المحركات الماكرو الرئيسية",
+    explanationLabel: "التفسير",
+    biasBullish: "صعودي",
+    biasBearish: "هبوطي",
+    biasNeutral: "حيادي"
   }
 };
 
@@ -361,6 +385,209 @@ const NEWS_ITEM_TRANSLATIONS = {
   }
 };
 
+const getGoldBiasData = (newsItems, lang) => {
+  let bullishFactor = 0;
+  let bearishFactor = 0;
+  let totalImpactScore = 0;
+  const isUsNews = (title, summary) => {
+    const t = (title || "").toLowerCase();
+    const s = (summary || "").toLowerCase();
+    return t.includes("🇺🇸") || s.includes("fed") || s.includes("u.s.") || t.includes("fomc") || t.includes("cpi") || t.includes("nfp") || t.includes("pce") || t.includes("jobless") || t.includes("gdp") || t.includes("retail");
+  };
+
+  newsItems.forEach(item => {
+    const title = (item.title || "").toLowerCase();
+    const summary = (item.summary || "").toLowerCase();
+    if (isUsNews(item.title, item.summary)) {
+      let weight = 1;
+      if ((item.importance || "").includes("Extreme")) weight = 3;
+      else if ((item.importance || "").includes("High")) weight = 2;
+      totalImpactScore += weight;
+
+      if (title.includes("cpi") || title.includes("pce") || title.includes("inflation")) {
+        bullishFactor += weight * 1.2;
+      } else if (title.includes("fomc") || title.includes("interest rate") || title.includes("federal reserve")) {
+        bullishFactor += weight * 1.5;
+      } else if (title.includes("payroll") || title.includes("nfp") || title.includes("employment")) {
+        bullishFactor += weight * 0.8;
+        bearishFactor += weight * 0.8;
+      } else if (title.includes("jobless")) {
+        bullishFactor += weight * 0.5;
+        bearishFactor += weight * 0.5;
+      } else if (title.includes("gdp")) {
+        bullishFactor += weight * 1.0;
+      }
+    }
+  });
+
+  const savedLanguage = lang || "en";
+
+  // Compute sentiment percentage score
+  let score = 65; // default if no news
+  if (totalImpactScore > 0) {
+    const total = bullishFactor + bearishFactor;
+    if (total > 0) {
+      score = Math.round((bullishFactor / total) * 100);
+    }
+  }
+  if (score > 88) score = 88;
+  if (score < 32) score = 32;
+
+  // Language mapping
+  const texts = {
+    en: {
+      biasBullish: "Bullish",
+      biasBearish: "Bearish",
+      biasNeutral: "Neutral",
+      biasStrong: "Strong",
+      biasModerate: "Moderate",
+      biasBalanced: "Balanced",
+      biasMild: "Mild",
+      explanationStrongBullish: "Strong bullish macro bias for Gold. The cluster of upcoming dovish U.S. indicators (lower CPI expectations, potential Fed rate cuts, and rising jobless claims) indicates a weaker USD path, which historically boosts XAU/USD.",
+      explanationModerateBullish: "Moderately bullish bias. Gold benefits from supportive U.S. interest rate cut expectations, but short-term volatility remains high as markets digest mixed economic data.",
+      explanationStrongBearish: "Strong bearish macro bias. High inflation readings and a robust U.S. labor market signal that interest rates may stay higher for longer, strengthening the USD and putting pressure on Gold.",
+      explanationModerateBearish: "Moderately bearish bias. Stronger economic growth (GDP) and resilient retail sales support a hawkish Fed posture, limiting Gold's upside potential in the near term.",
+      explanationNeutral: "Balanced outlook. Bullish safe-haven factors are currently offset by a resilient U.S. economy. Expect range-bound price action in XAU/USD until the next major macroeconomic release.",
+      explanationDefault: "Gold remains supported by long-term central bank buying and macroeconomic uncertainty. Keep a close eye on upcoming USD index and bond yield movements.",
+      driverCentralBank: "Central Bank Demand",
+      driverCentralBankImpact: "Record buying by central banks provides a strong floor for Gold prices.",
+      driverYield: "Yield Correlation",
+      driverYieldImpact: "Declining real yields historically act as a major tailwind for non-yielding Gold.",
+      driverUSD: "USD Correlation",
+      driverUSDImpact: "Gold moves inversely to the US Dollar strength.",
+      driverCPI: "Inflation Outlook",
+      driverCPIImpact: "Slowing CPI/PCE inflation is bullish for gold, as it clears the way for rate cuts.",
+      driverFOMC: "FOMC Policy Path",
+      driverFOMCImpact: "Dovish interest rate expectations reduce the opportunity cost of holding non-yielding Gold.",
+      driverNFP: "Employment Pressure",
+      driverNFPImpact: "Weakening jobs data would support rate cuts, while strong NFP is bearish for Gold."
+    },
+    fr: {
+      biasBullish: "Haussier",
+      biasBearish: "Baissier",
+      biasNeutral: "Neutre",
+      biasStrong: "Fort",
+      biasModerate: "Modéré",
+      biasBalanced: "Équilibré",
+      biasMild: "Léger",
+      explanationStrongBullish: "Fort biais haussier sur l'Or. Le groupe d'indicateurs américains accommodants (attentes d'IPC en baisse, baisses potentielles des taux de la Fed) indique une baisse de l'USD, ce qui stimule historiquement l'XAU/USD.",
+      explanationModerateBullish: "Biais modérément haussier. L'Or bénéficie des attentes de baisses des taux d'intérêt aux États-Unis, mais la volatilité à court terme reste élevée car les marchés digèrent des données économiques mitigées.",
+      explanationStrongBearish: "Fort biais baissier. Des chiffres d'inflation élevés et un marché du travail américain robuste indiquent que les taux d'intérêt pourraient rester élevés plus longtemps, renforçant l'USD et pesant sur l'Or.",
+      explanationModerateBearish: "Biais modérément baissier. Une croissance économique plus forte (PIB) et des ventes au détail résilientes soutiennent une posture hawkish de la Fed, limitant le potentiel de hausse de l'Or à court terme.",
+      explanationNeutral: "Perspectives équilibrées. Les facteurs haussiers de refuge sont actuellement compensés par une économie américaine résiliente. Attendez-vous à une consolidation de l'XAU/USD jusqu'aux prochaines publications macroéconomiques majeures.",
+      explanationDefault: "L'Or reste soutenu par les achats à long terme des banques centrales et l'incertitude macroéconomique. Surveillez de près les mouvements de l'indice USD et des rendements obligataires.",
+      driverCentralBank: "Demande des Banques Centrales",
+      driverCentralBankImpact: "Des achats records par les banques centrales soutiennent solidement les prix de l'Or.",
+      driverYield: "Corrélation des Rendements",
+      driverYieldImpact: "La baisse des rendements réels est historiquement un moteur majeur pour l'Or non rémunéré.",
+      driverUSD: "Corrélation avec l'USD",
+      driverUSDImpact: "L'Or évolue à l'inverse de la force du dollar américain.",
+      driverCPI: "Perspectives d'Inflation",
+      driverCPIImpact: "Le ralentissement de l'inflation IPC/PCE est haussier pour l'or car il ouvre la voie à des baisses de taux.",
+      driverFOMC: "Politique de la FOMC",
+      driverFOMCImpact: "Les attentes de taux d'intérêt dovish réduisent le coût d'opportunité de la détention d'Or.",
+      driverNFP: "Pression de l'Emploi",
+      driverNFPImpact: "L'affaiblissement des données sur l'emploi soutiendrait les baisses de taux, tandis qu'un NFP solide est baissier."
+    },
+    ar: {
+      biasBullish: "صعودي",
+      biasBearish: "هبوطي",
+      biasNeutral: "حيادي",
+      biasStrong: "قوي",
+      biasModerate: "معتدل",
+      biasBalanced: "متوازن",
+      biasMild: "خفيف",
+      explanationStrongBullish: "انحياز صعودي قوي للذهب. تشير مجموعة من المؤشرات الأمريكية القادمة (توقعات تضخم أقل، تخفيضات محتملة لأسعار الفائدة من الفيدرالي) إلى مسار أضعف للدولار الأمريكي، مما يدعم الذهب تاريخياً.",
+      explanationModerateBullish: "انحياز صعودي معتدل. يستفيد الذهب من توقعات خفض أسعار الفائدة الأمريكية، لكن التقلبات قصيرة المدى تظل مرتفعة مع استيعاب الأسواق للبيانات الاقتصادية المختلطة.",
+      explanationStrongBearish: "انحياز هبوطي قوي. قراءات التضخم المرتفعة وسوق العمل الأمريكي القوي يشيران إلى أن أسعار الفائدة قد تظل مرتفعة لفترة أطول، مما يقوي الدولار ويضغط على الذهب.",
+      explanationModerateBearish: "انحياز هبوطي معتدل. النمو الاقتصادي الأقوى (الناتج المحلي الإجمالي) ومبيعات التجزئة المرنة تدعم موقف الفيدرالي المتشدد، مما يحد من إمكانية صعود الذهب على المدى القريب.",
+      explanationNeutral: "توقعات متوازنة. تقابل عوامل الملاذ الآمن الصعودية حاليًا مرونة الاقتصاد الأمريكي. توقع تحركًا عرضيًا للذهب حتى صدور البيانات الاقتصادية الكبرى التالية.",
+      explanationDefault: "يظل الذهب مدعومًا بمشتريات البنوك المركزية طويلة الأجل والاضطرابات الماكرو-اقتصادية. راقب عن كثب تحركات مؤشر الدولار وعوائد السندات.",
+      driverCentralBank: "طلب البنوك المركزية",
+      driverCentralBankImpact: "مشتريات قياسية من البنوك المركزية توفر دعمًا قويًا لأسعار الذهب.",
+      driverYield: "ارتباط العوائد",
+      driverYieldImpact: "انخفاض العوائد الحقيقية يمثل تاريخيًا دافعًا قويًا للذهب الذي لا يدر عائدًا.",
+      driverUSD: "الارتباط بالدولار",
+      driverUSDImpact: "يتحرك الذهب بشكل عكسي مع قوة الدولار الأمريكي.",
+      driverCPI: "توقعات التضخم",
+      driverCPIImpact: "تباطؤ تضخم مؤشر أسعار المستهلكين/النفقات الاستهلاكية صعودي للذهب لأنه يمهد الطريق لخفض الفائدة.",
+      driverFOMC: "مسار سياسة الفيدرالي",
+      driverFOMCImpact: "توقعات الفائدة التيسيرية تقلل من تكلفة الفرصة البديلة للاحتفاظ بالذهب.",
+      driverNFP: "ضغط التوظيف",
+      driverNFPImpact: "ضعف بيانات الوظائف يدعم خفض الفائدة، في حين أن تقرير الوظائف القوي يكون هبوطياً للذهب."
+    }
+  };
+
+  const currentLangText = texts[savedLanguage] || texts.en;
+
+  let biasText = currentLangText.biasNeutral;
+  let strengthText = currentLangText.biasMild;
+  let explanationText = currentLangText.explanationDefault;
+  const drivers = [];
+
+  if (totalImpactScore === 0) {
+    drivers.push(
+      { name: currentLangText.driverCentralBank, impact: currentLangText.driverCentralBankImpact, sentiment: "bullish" },
+      { name: currentLangText.driverYield, impact: currentLangText.driverYieldImpact, sentiment: "bullish" }
+    );
+  } else {
+    // Generate dynamic drivers
+    let hasCpi = false;
+    let hasFomc = false;
+    let hasNfp = false;
+    newsItems.forEach(item => {
+      const title = (item.title || "").toLowerCase();
+      if ((title.includes("cpi") || title.includes("pce") || title.includes("inflation")) && !hasCpi) {
+        hasCpi = true;
+        drivers.push({ name: currentLangText.driverCPI, impact: currentLangText.driverCPIImpact, sentiment: "bullish" });
+      }
+      if ((title.includes("fomc") || title.includes("interest rate") || title.includes("federal reserve")) && !hasFomc) {
+        hasFomc = true;
+        drivers.push({ name: currentLangText.driverFOMC, impact: currentLangText.driverFOMCImpact, sentiment: "bullish" });
+      }
+      if ((title.includes("payroll") || title.includes("nfp") || title.includes("employment")) && !hasNfp) {
+        hasNfp = true;
+        drivers.push({ name: currentLangText.driverNFP, impact: currentLangText.driverNFPImpact, sentiment: "neutral" });
+      }
+    });
+
+    if (drivers.length === 0) {
+      drivers.push({ name: currentLangText.driverUSD, impact: currentLangText.driverUSDImpact, sentiment: "neutral" });
+    }
+  }
+
+  // Sentiment threshold settings
+  if (score >= 70) {
+    biasText = currentLangText.biasBullish;
+    strengthText = currentLangText.biasStrong;
+    explanationText = currentLangText.explanationStrongBullish;
+  } else if (score >= 58) {
+    biasText = currentLangText.biasBullish;
+    strengthText = currentLangText.biasModerate;
+    explanationText = currentLangText.explanationModerateBullish;
+  } else if (score <= 40) {
+    biasText = currentLangText.biasBearish;
+    strengthText = currentLangText.biasStrong;
+    explanationText = currentLangText.explanationStrongBearish;
+  } else if (score <= 48) {
+    biasText = currentLangText.biasBearish;
+    strengthText = currentLangText.biasModerate;
+    explanationText = currentLangText.explanationModerateBearish;
+  } else {
+    biasText = currentLangText.biasNeutral;
+    strengthText = currentLangText.biasBalanced;
+    explanationText = currentLangText.explanationNeutral;
+  }
+
+  return {
+    score,
+    bias: biasText,
+    strength: strengthText,
+    explanation: explanationText,
+    drivers
+  };
+};
+
 export default function WeeklyNewsHub({ lang = "en" }) {
   const [news, setNews] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -528,6 +755,118 @@ export default function WeeklyNewsHub({ lang = "en" }) {
           {trans.fetchingText}
         </p>
       )}
+
+      {/* Gold Bias Section */}
+      {!loading && news.length > 0 && (() => {
+        const biasData = getGoldBiasData(news, lang);
+        return (
+          <div
+            style={{
+              background: "rgba(250, 204, 21, 0.02)",
+              border: "1px solid rgba(250, 204, 21, 0.15)",
+              borderRadius: "10px",
+              padding: "16px",
+              marginBottom: "20px",
+              display: "flex",
+              flexDirection: "column",
+              gap: "14px"
+            }}
+          >
+            {/* Header */}
+            <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
+              <span style={{ fontSize: "20px" }}>✨</span>
+              <div>
+                <h4 style={{ margin: 0, fontSize: "14px", fontWeight: "800", color: "#facc15" }}>
+                  {trans.goldBiasTitle}
+                </h4>
+                <p style={{ margin: "2px 0 0", fontSize: "11px", color: "#888893" }}>
+                  {trans.goldBiasSubtitle}
+                </p>
+              </div>
+            </div>
+
+            {/* Grid Layout for Gauge & Explanation */}
+            <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "16px", alignItems: "start" }}>
+              
+              {/* Sentiment Meter (Gauge) */}
+              <div style={{ background: "#050506", borderRadius: "8px", padding: "12px", border: "1px solid #222225" }}>
+                <div style={{ display: "flex", justifyContent: "space-between", marginBottom: "8px" }}>
+                  <span style={{ fontSize: "11px", fontWeight: "700", color: "#888893" }}>{trans.sentimentMeter}</span>
+                  <span style={{ fontSize: "12px", fontWeight: "800", color: biasData.score >= 58 ? "#a3e635" : biasData.score <= 48 ? "#f43f5e" : "#888893" }}>
+                    {biasData.score}% {biasData.score >= 58 ? trans.biasBullish : biasData.score <= 48 ? trans.biasBearish : trans.biasNeutral}
+                  </span>
+                </div>
+                
+                {/* Custom Horizontal Sentiment Bar */}
+                <div style={{ position: "relative", height: "8px", background: "linear-gradient(90deg, #f43f5e, #eab308, #a3e635)", borderRadius: "4px", margin: "14px 0 8px" }}>
+                  {/* Pointer / Dial */}
+                  <div
+                    style={{
+                      position: "absolute",
+                      top: "-4px",
+                      left: `${biasData.score}%`,
+                      transform: "translateX(-50%)",
+                      width: "16px",
+                      height: "16px",
+                      borderRadius: "50%",
+                      background: "#ffffff",
+                      border: "3px solid #facc15",
+                      boxShadow: "0 0 8px rgba(250, 204, 21, 0.8)",
+                      transition: "left 0.5s ease-in-out"
+                    }}
+                  />
+                </div>
+                
+                <div style={{ display: "flex", justifyContent: "space-between", fontSize: "9px", color: "#484f58", fontWeight: "700" }}>
+                  <span>{trans.biasBearish.toUpperCase()}</span>
+                  <span>{trans.biasNeutral.toUpperCase()}</span>
+                  <span>{trans.biasBullish.toUpperCase()}</span>
+                </div>
+              </div>
+
+              {/* Explanation & Drivers */}
+              <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
+                <div>
+                  <span style={{ fontSize: "10px", fontWeight: "700", color: "#888893", textTransform: "uppercase", display: "block", marginBottom: "4px" }}>
+                    {trans.explanationLabel} · <strong style={{ color: biasData.score >= 58 ? "#a3e635" : biasData.score <= 48 ? "#f43f5e" : "#facc15" }}>{biasData.strength} {biasData.bias}</strong>
+                  </span>
+                  <p style={{ margin: 0, fontSize: "11.5px", color: "#ffffff", lineHeight: "1.5" }}>
+                    {biasData.explanation}
+                  </p>
+                </div>
+
+                {/* Mini Drivers List */}
+                <div style={{ display: "flex", flexDirection: "column", gap: "6px" }}>
+                  <span style={{ fontSize: "9px", fontWeight: "700", color: "#888893", textTransform: "uppercase" }}>{trans.keyDrivers}</span>
+                  <div style={{ display: "flex", flexWrap: "wrap", gap: "6px" }}>
+                    {biasData.drivers.map((d, index) => (
+                      <div
+                        key={index}
+                        style={{
+                          background: "#111113",
+                          border: "1px solid #222225",
+                          borderRadius: "4px",
+                          padding: "4px 8px",
+                          fontSize: "10.5px",
+                          color: "#ffffff",
+                          display: "flex",
+                          alignItems: "center",
+                          gap: "6px"
+                        }}
+                        title={d.impact}
+                      >
+                        <span style={{ color: d.sentiment === "bullish" ? "#a3e635" : d.sentiment === "bearish" ? "#f43f5e" : "#eab308" }}>●</span>
+                        <strong>{d.name}</strong>
+                      </div>
+                    ))}
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+        );
+      })()}
 
       {/* News Cards Grid */}
       {!loading && news.length > 0 && (

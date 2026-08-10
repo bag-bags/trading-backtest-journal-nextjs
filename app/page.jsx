@@ -543,20 +543,28 @@ export default function Home() {
         const res = await fetch("/api/journal-files");
         const payload = await res.json();
         let files = [];
+        const stored = JSON.parse(localStorage.getItem("journal_files") || "[]");
+
         if (res.ok) {
           if (payload.googleSheetsError) {
             setGoogleSheetsError(payload.googleSheetsError);
           } else {
             setGoogleSheetsError("");
           }
-          if (payload.files && payload.files.length > 0) {
-            files = payload.files;
+          const serverFiles = payload.files || [];
+          
+          // Merge local stored files and server files, prioritizing server files
+          const mergedMap = new Map();
+          stored.forEach(f => mergedMap.set(f.name, f));
+          serverFiles.forEach(f => mergedMap.set(f.name, f));
+          files = Array.from(mergedMap.values());
+          
+          if (files.length > 0) {
             localStorage.setItem("journal_files", JSON.stringify(files));
           }
         } else {
-          const stored = localStorage.getItem("journal_files");
-          if (stored) {
-            files = JSON.parse(stored);
+          if (stored.length > 0) {
+            files = stored;
           } else {
             const defaultRes = await fetch("/api/default-csv");
             const defaultPayload = await defaultRes.json();
@@ -764,7 +772,7 @@ export default function Home() {
       return;
     }
 
-    // Add to journal files list
+    // Add to journal files list locally first
     let updatedFiles = [];
     setJournalFiles((prev) => {
       const filtered = prev.filter((f) => f.name !== file.name);
@@ -772,6 +780,24 @@ export default function Home() {
       localStorage.setItem("journal_files", JSON.stringify(updatedFiles));
       return updatedFiles;
     });
+
+    // Try to save to backend server filesystem
+    try {
+      const res = await fetch("/api/journal-files", {
+        method: "PUT",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ oldName: file.name, content: text })
+      });
+      if (res.ok) {
+        const payload = await res.json();
+        if (payload.files && !payload.isReadOnly) {
+          setJournalFiles(payload.files);
+          localStorage.setItem("journal_files", JSON.stringify(payload.files));
+        }
+      }
+    } catch (e) {
+      console.error("Failed to save imported file to server", e);
+    }
 
     setActiveFileName(file.name);
     localStorage.setItem("active_journal_file_name", file.name);
