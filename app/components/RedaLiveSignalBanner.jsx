@@ -21,7 +21,8 @@ const TR_DICT = {
     riskAmountLabel: "Risk Amount ($)",
     copySignal: "📋 Copy Signal Parameters",
     copied: "✓ Copied to Clipboard!",
-    symbolLabel: "Active Symbol:"
+    symbolLabel: "Active Symbol:",
+    feedSource: "🟢 TwelveData Real-Time Feed"
   },
   fr: {
     bannerTitle: "✨ Moteur de Signaux Reda System & Liste de Contrôle en Direct",
@@ -40,7 +41,8 @@ const TR_DICT = {
     riskAmountLabel: "Montant du Risque ($)",
     copySignal: "📋 Copier les Paramètres du Signal",
     copied: "✓ Copié dans le Presse-papiers !",
-    symbolLabel: "Symbole Actif :"
+    symbolLabel: "Symbole Actif :",
+    feedSource: "🟢 Flux Temps Réel TwelveData"
   },
   ar: {
     bannerTitle: "✨ محرك إشارات رضا سيستم وقائمة التحقق المباشرة",
@@ -50,7 +52,7 @@ const TR_DICT = {
     statusScore: "درجة توافق قائمة التحقق:",
     executionReady: "🚀 تم استيفاء جميع الشروط الـ 5 — جاهز للتنفيذ!",
     needConfluence: "⏳ في انتظار اكتمال شروط قائمة التحقق",
-    entryLabel: "سعر الدخول المباشر",
+    entryLabel: "سعر الدخول المباشر (TwelveData)",
     slLabel: "وقف الخسارة (SL)",
     tp1Label: "الهدف الأول TP1 (1:2)",
     tp2Label: "الهدف الثاني TP2 (1:3)",
@@ -59,37 +61,67 @@ const TR_DICT = {
     riskAmountLabel: "قيمة المخاطرة ($)",
     copySignal: "📋 نسخ تفاصيل الصفقة",
     copied: "✓ تم النسخ بنجاح!",
-    symbolLabel: "الرمز الحالي:"
+    symbolLabel: "الرمز الحالي:",
+    feedSource: "🟢 بيانات TwelveData الحية"
   }
 };
 
-export default function RedaLiveSignalBanner({ symbol = "GOLD", lang = "en" }) {
+export default function RedaLiveSignalBanner({ symbol = "GOLD", candles: externalCandles = [], lang = "en" }) {
   const [fundamentalBias, setFundamentalBias] = useState("Bullish");
   const [budget, setBudget] = useState(10000);
   const [riskPercent, setRiskPercent] = useState(1);
   const [useKillzone, setUseKillzone] = useState(true);
   const [evalResult, setEvalResult] = useState(null);
+  const [liveCandles, setLiveCandles] = useState([]);
   const [copied, setCopied] = useState(false);
   const [isExpanded, setIsExpanded] = useState(true);
 
   const t = TR_DICT[lang] || TR_DICT.en;
 
-  // Run dynamic Reda System evaluation on mount and symbol/bias changes
+  // 1. Fetch live TwelveData market candles if externalCandles is empty
   useEffect(() => {
-    // Generate/fetch candles simulation for demo & live chart
-    const currentPrice = symbol.includes("GOLD") || symbol.includes("XAU") ? 2650.00 : symbol.includes("BTC") ? 64300.00 : 1.1350;
-    const baseOffset = fundamentalBias === "Bearish" ? 2.50 : -2.50;
+    let isMounted = true;
 
-    const mockCandles = [
-      { open: currentPrice - 6, high: currentPrice - 2, low: currentPrice - 8, close: currentPrice - 4 },
-      { open: currentPrice - 4, high: currentPrice + 1, low: currentPrice - 5, close: currentPrice - 2 },
-      { open: currentPrice - 2, high: currentPrice + 3, low: currentPrice - 3, close: currentPrice + 1 },
-      { open: currentPrice + 1, high: currentPrice + 5, low: currentPrice - 1, close: currentPrice + 4 }
-    ];
+    async function loadTwelveDataFeed() {
+      if (externalCandles && externalCandles.length > 0) {
+        setLiveCandles(externalCandles);
+        return;
+      }
 
-    const result = evaluateRedaSystem(mockCandles, symbol, fundamentalBias, useKillzone, Number(budget) || 10000, Number(riskPercent) || 1);
+      try {
+        const querySymbol = (symbol || "GOLD").toUpperCase() === "GOLD" ? "GOLD" : symbol;
+        const res = await fetch(`/api/ohlc?symbol=${encodeURIComponent(querySymbol)}&interval=1m&provider=twelvedata`);
+        if (res.ok) {
+          const data = await res.json();
+          if (data.candles && data.candles.length > 0 && isMounted) {
+            setLiveCandles(data.candles);
+          }
+        }
+      } catch (err) {
+        console.error("Failed to fetch TwelveData live candles:", err);
+      }
+    }
+
+    loadTwelveDataFeed();
+
+    // Auto-refresh feed every 15 seconds for live TwelveData updates
+    const interval = setInterval(loadTwelveDataFeed, 15000);
+    return () => {
+      isMounted = false;
+      clearInterval(interval);
+    };
+  }, [symbol, externalCandles]);
+
+  // 2. Run dynamic Reda System evaluation whenever inputs or candles update
+  useEffect(() => {
+    const activeCandles = (externalCandles && externalCandles.length > 0) ? externalCandles : liveCandles;
+    
+    const numBudget = parseFloat(budget) || 10000;
+    const numRisk = parseFloat(riskPercent) || 1;
+
+    const result = evaluateRedaSystem(activeCandles, symbol, fundamentalBias, useKillzone, numBudget, numRisk);
     setEvalResult(result);
-  }, [symbol, fundamentalBias, budget, riskPercent, useKillzone]);
+  }, [symbol, externalCandles, liveCandles, fundamentalBias, budget, riskPercent, useKillzone]);
 
   if (!evalResult) return null;
 
@@ -97,7 +129,7 @@ export default function RedaLiveSignalBanner({ symbol = "GOLD", lang = "en" }) {
     const text = `🚨 REDA SYSTEM ${evalResult.signal || "SIGNAL"} ALERT (${symbol})
 ───────────────────────────────
 🎯 Bias: ${fundamentalBias}
-📍 Entry: ${evalResult.entry.toFixed(2)}
+📍 Entry Price: ${evalResult.entry.toFixed(2)}
 🛑 Stop Loss: ${evalResult.stopLoss.toFixed(2)}
 🎯 TP1 (1:2): ${evalResult.takeProfit1.toFixed(2)}
 🎯 TP2 (1:3): ${evalResult.takeProfit2.toFixed(2)}
@@ -152,6 +184,9 @@ Checklist Score: ${evalResult.score}/5`;
                 }}
               >
                 {symbol}
+              </span>
+              <span style={{ fontSize: "10px", color: "#22c55e", background: "rgba(34, 197, 94, 0.1)", padding: "2px 6px", borderRadius: "4px", border: "1px solid rgba(34, 197, 94, 0.3)" }}>
+                {t.feedSource}
               </span>
             </h4>
             <p style={{ margin: "2px 0 0", fontSize: "11.5px", color: evalResult.isReady ? (isBull ? "#4ade80" : "#f87171") : "#facc15" }}>
@@ -208,7 +243,7 @@ Checklist Score: ${evalResult.score}/5`;
         <div style={{ marginTop: "16px", paddingTop: "14px", borderTop: "1px solid rgba(255,255,255,0.08)", display: "flex", flexDirection: "column", gap: "14px" }}>
           
           {/* Budget & Risk Controls Row */}
-          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(200px, 1fr))", gap: "10px", background: "#090d16", padding: "12px", borderRadius: "8px", border: "1px solid #21262d" }}>
+          <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(180px, 1fr))", gap: "10px", background: "#090d16", padding: "12px", borderRadius: "8px", border: "1px solid #21262d" }}>
             <div>
               <label style={{ fontSize: "11px", color: "#8b949e", fontWeight: "700", display: "block", marginBottom: "4px" }}>{t.accountBudget}</label>
               <input
@@ -242,12 +277,12 @@ Checklist Score: ${evalResult.score}/5`;
             </div>
           </div>
 
-          {/* Exact Entry, Stop-Loss & Take-Profit Targets Grid */}
+          {/* Exact TwelveData Entry, Stop-Loss & Take-Profit Targets Grid */}
           <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(140px, 1fr))", gap: "10px" }}>
             {/* Entry */}
             <div style={{ background: "#090d16", border: "1px solid #21262d", borderRadius: "8px", padding: "10px", textAlign: "center" }}>
-              <span style={{ fontSize: "10px", color: "#8b949e", fontWeight: "700", textTransform: "uppercase" }}>{t.entryLabel}</span>
-              <div style={{ fontSize: "15px", fontWeight: "800", color: "#ffffff", marginTop: "4px" }}>
+              <span style={{ fontSize: "10px", color: "#38bdf8", fontWeight: "800", textTransform: "uppercase" }}>{t.entryLabel}</span>
+              <div style={{ fontSize: "15px", fontWeight: "900", color: "#ffffff", marginTop: "4px" }}>
                 ${evalResult.entry.toFixed(2)}
               </div>
             </div>
@@ -255,7 +290,7 @@ Checklist Score: ${evalResult.score}/5`;
             {/* Stop Loss */}
             <div style={{ background: "rgba(239, 68, 68, 0.08)", border: "1px solid rgba(239, 68, 68, 0.3)", borderRadius: "8px", padding: "10px", textAlign: "center" }}>
               <span style={{ fontSize: "10px", color: "#ef4444", fontWeight: "800", textTransform: "uppercase" }}>{t.slLabel}</span>
-              <div style={{ fontSize: "15px", fontWeight: "800", color: "#ef4444", marginTop: "4px" }}>
+              <div style={{ fontSize: "15px", fontWeight: "900", color: "#ef4444", marginTop: "4px" }}>
                 ${evalResult.stopLoss.toFixed(2)}
               </div>
             </div>

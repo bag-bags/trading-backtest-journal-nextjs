@@ -1203,7 +1203,7 @@ export default function Home() {
 
         {/* Live Session Clocks & Pro Knowledge Hub Banner */}
         <div style={{ display: "flex", flexDirection: "column", gap: "0px", padding: "0 0 10px 0" }}>
-          <RedaLiveSignalBanner symbol={marketSymbol} lang={lang} />
+          <RedaLiveSignalBanner symbol={marketSymbol} candles={candles} lang={lang} />
           <LiveSessionClocks lang={lang} />
           <KnowledgeHub lang={lang} />
           <WeeklyNewsHub lang={lang} />

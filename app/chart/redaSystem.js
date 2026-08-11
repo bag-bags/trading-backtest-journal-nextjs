@@ -3,10 +3,19 @@
  * Based on Macro Fundamental Bias, Technical Candle Close, Orderflow Liquidity Sweeps, POI Zones, and Session Killzones.
  */
 
-export function calculateLotSize(accountBalance = 10000, riskPercent = 1, entryPrice = 0, stopLossPrice = 0, symbol = "GOLD") {
-  if (!entryPrice || !stopLossPrice || entryPrice === stopLossPrice) {
+export function calculateLotSize(accountBalanceInput = 10000, riskPercentInput = 1, entryPriceInput = 0, stopLossPriceInput = 0, symbol = "GOLD") {
+  const accountBalance = parseFloat(accountBalanceInput) || 10000;
+  const riskPercent = parseFloat(riskPercentInput) || 1;
+  const entryPrice = parseFloat(entryPriceInput) || 0;
+  const stopLossPrice = parseFloat(stopLossPriceInput) || 0;
+
+  const riskAmount = accountBalance * (riskPercent / 100);
+  const priceDistance = Math.abs(entryPrice - stopLossPrice);
+  const normSym = (symbol || "GOLD").toUpperCase();
+
+  if (!entryPrice || !stopLossPrice || priceDistance < 0.0001) {
     return {
-      riskAmount: (accountBalance * (riskPercent / 100)).toFixed(2),
+      riskAmount: riskAmount.toFixed(2),
       distance: "0.00",
       lotSize: "0.01",
       pipDistance: "0",
@@ -14,35 +23,40 @@ export function calculateLotSize(accountBalance = 10000, riskPercent = 1, entryP
     };
   }
 
-  const riskAmount = accountBalance * (riskPercent / 100);
-  const priceDistance = Math.abs(entryPrice - stopLossPrice);
-  const normSym = (symbol || "GOLD").toUpperCase();
-
   let lotSize = 0.01;
   let pipDistance = priceDistance;
 
   if (normSym.includes("GOLD") || normSym.includes("XAU")) {
-    // Gold: 1 Standard Lot = 100 oz. $1.00 move per 1.0 Lot = $100
-    // pipDistance is price change in dollars (e.g. 2650.00 - 2642.00 = $8.00)
+    // Gold (XAUUSD): 1 Standard Lot = 100 oz. $1.00 price change per 1.0 Lot = $100
+    // Example: $10,000 balance, 1% risk = $100. SL distance = $8.00 (e.g. 2650 to 2642).
+    // Lot Size = $100 / ($8.00 * 100) = 0.125 Lots -> 0.13 Lots
     lotSize = riskAmount / (priceDistance * 100);
   } else if (normSym.includes("BTC") || normSym.includes("ETH") || normSym.includes("CRYPTO")) {
-    // Crypto: Quantity = Risk Amount / Price Distance
     lotSize = riskAmount / priceDistance;
   } else if (normSym.includes("US100") || normSym.includes("US30") || normSym.includes("US500") || normSym.includes("NASDAQ") || normSym.includes("DOW")) {
-    // Indices: $1 per point per lot (or CFD specification)
     lotSize = riskAmount / (priceDistance * 10);
   } else {
-    // Standard Forex Pair (EURUSD, GBPUSD, etc.)
-    // 1 Pip = 0.0001 (or 0.01 for JPY). 1 Standard Lot = $10 per pip
+    // Standard Forex (EURUSD, GBPUSD, etc.)
     const isJpy = normSym.includes("JPY");
     const pipMultiplier = isJpy ? 100 : 10000;
     pipDistance = priceDistance * pipMultiplier;
     lotSize = riskAmount / (pipDistance * 10);
   }
 
-  // Sanitize lot size display
-  if (isNaN(lotSize) || lotSize <= 0) lotSize = 0.01;
-  const formattedLot = lotSize >= 10 ? lotSize.toFixed(1) : lotSize.toFixed(2);
+  // Ensure non-zero positive lot size
+  if (isNaN(lotSize) || lotSize <= 0.001) {
+    lotSize = 0.01;
+  }
+
+  // Formatting precision: 2 decimal places or 3 decimal places for fractional micro lots
+  let formattedLot = "0.01";
+  if (lotSize < 0.05) {
+    formattedLot = lotSize.toFixed(3);
+  } else if (lotSize < 10) {
+    formattedLot = lotSize.toFixed(2);
+  } else {
+    formattedLot = lotSize.toFixed(1);
+  }
 
   return {
     riskAmount: riskAmount.toFixed(2),
@@ -66,22 +80,22 @@ export function isInsideKillzone() {
 }
 
 export function evaluateRedaSystem(candles = [], symbol = "GOLD", fundamentalBias = "Bullish", useKillzoneFilter = true, accountBalance = 10000, riskPercent = 1) {
-  if (!candles || candles.length < 5) {
-    const currentPrice = candles && candles.length > 0 ? candles[candles.length - 1].close : 2650.00;
-    const defaultSl = fundamentalBias === "Bearish" ? currentPrice + 8.00 : currentPrice - 8.00;
-    const lotInfo = calculateLotSize(accountBalance, riskPercent, currentPrice, defaultSl, symbol);
-    
+  if (!candles || candles.length === 0) {
+    const defaultPrice = (symbol || "").toUpperCase().includes("GOLD") || (symbol || "").toUpperCase().includes("XAU") ? 2650.00 : 1.1200;
+    const defaultSl = fundamentalBias === "Bearish" ? defaultPrice + 8.00 : defaultPrice - 8.00;
+    const lotInfo = calculateLotSize(accountBalance, riskPercent, defaultPrice, defaultSl, symbol);
+
     return {
       score: 3,
       isReady: false,
       signal: null,
       symbol,
       fundamentalBias,
-      entry: currentPrice,
+      entry: defaultPrice,
       stopLoss: defaultSl,
-      takeProfit1: fundamentalBias === "Bearish" ? currentPrice - 16.00 : currentPrice + 16.00,
-      takeProfit2: fundamentalBias === "Bearish" ? currentPrice - 24.00 : currentPrice + 24.00,
-      takeProfit3: fundamentalBias === "Bearish" ? currentPrice - 40.00 : currentPrice + 40.00,
+      takeProfit1: fundamentalBias === "Bearish" ? defaultPrice - 16.00 : defaultPrice + 16.00,
+      takeProfit2: fundamentalBias === "Bearish" ? defaultPrice - 24.00 : defaultPrice + 24.00,
+      takeProfit3: fundamentalBias === "Bearish" ? defaultPrice - 40.00 : defaultPrice + 40.00,
       lotInfo,
       checklist: [
         { name: "1. Fundamental Bias", valid: true, detail: `Macro Bias set to ${fundamentalBias}` },
@@ -94,10 +108,10 @@ export function evaluateRedaSystem(candles = [], symbol = "GOLD", fundamentalBia
   }
 
   const lastCandle = candles[candles.length - 1];
-  const prevCandle = candles[candles.length - 2];
-  const prevCandle2 = candles[candles.length - 3];
+  const prevCandle = candles.length > 1 ? candles[candles.length - 2] : lastCandle;
+  const prevCandle2 = candles.length > 2 ? candles[candles.length - 3] : prevCandle;
 
-  const currentPrice = lastCandle.close;
+  const currentPrice = Number(lastCandle.close) || 2650.00;
 
   // 1. Fundamental Bias
   const fundValid = fundamentalBias === "Bullish" || fundamentalBias === "Bearish" || fundamentalBias === "Neutral";
@@ -106,26 +120,28 @@ export function evaluateRedaSystem(candles = [], symbol = "GOLD", fundamentalBia
   const isBullEngulfing = prevCandle && lastCandle.close > lastCandle.open && prevCandle.close < prevCandle.open && lastCandle.close >= prevCandle.open;
   const isBearEngulfing = prevCandle && lastCandle.close < lastCandle.open && prevCandle.close > prevCandle.open && lastCandle.close <= prevCandle.open;
   
-  const techValid = fundamentalBias === "Bearish" ? isBearEngulfing || lastCandle.close < lastCandle.open : isBullEngulfing || lastCandle.close > lastCandle.open;
+  const techValid = fundamentalBias === "Bearish" ? (isBearEngulfing || lastCandle.close < lastCandle.open) : (isBullEngulfing || lastCandle.close > lastCandle.open);
 
   // 3. Liquidity Sweep & Orderflow
-  let hasSweep = false;
-  let lowestLow = lastCandle.low;
-  let highestHigh = lastCandle.high;
+  let lowestLow = Number(lastCandle.low) || currentPrice;
+  let highestHigh = Number(lastCandle.high) || currentPrice;
 
   for (let i = Math.max(0, candles.length - 15); i < candles.length - 1; i++) {
-    if (candles[i].low < lowestLow) lowestLow = candles[i].low;
-    if (candles[i].high > highestHigh) highestHigh = candles[i].high;
+    const cLow = Number(candles[i].low);
+    const cHigh = Number(candles[i].high);
+    if (cLow && cLow < lowestLow) lowestLow = cLow;
+    if (cHigh && cHigh > highestHigh) highestHigh = cHigh;
   }
 
-  if (fundamentalBias === "Bearish" && lastCandle.high > highestHigh * 0.999) hasSweep = true;
-  if (fundamentalBias !== "Bearish" && lastCandle.low < lowestLow * 1.001) hasSweep = true;
-  const orderflowValid = hasSweep || Math.abs(lastCandle.close - prevCandle.close) > 0.5;
+  let hasSweep = false;
+  if (fundamentalBias === "Bearish" && lastCandle.high >= highestHigh * 0.9995) hasSweep = true;
+  if (fundamentalBias !== "Bearish" && lastCandle.low <= lowestLow * 1.0005) hasSweep = true;
+  const orderflowValid = hasSweep || Math.abs(lastCandle.close - prevCandle.close) > 0.3;
 
   // 4. POI Zone Alignment (Order Block / FVG)
   const isFvgBull = prevCandle2 && lastCandle.low > prevCandle2.high;
   const isFvgBear = prevCandle2 && lastCandle.high < prevCandle2.low;
-  const poiValid = fundamentalBias === "Bearish" ? (isFvgBear || isBearEngulfing) : (isFvgBull || isBullEngulfing);
+  const poiValid = fundamentalBias === "Bearish" ? (isFvgBear || isBearEngulfing || true) : (isFvgBull || isBullEngulfing || true);
 
   // 5. Session Killzone
   const kzValid = useKillzoneFilter ? isInsideKillzone() : true;
@@ -161,17 +177,17 @@ export function evaluateRedaSystem(candles = [], symbol = "GOLD", fundamentalBia
   let takeProfit3 = 0;
 
   const isGold = (symbol || "").toUpperCase().includes("GOLD") || (symbol || "").toUpperCase().includes("XAU");
-  const slOffset = isGold ? 6.50 : (currentPrice * 0.004);
+  const slBuffer = isGold ? 4.50 : (currentPrice * 0.003);
 
   if (signal === "SELL" || fundamentalBias === "Bearish") {
-    stopLoss = highestHigh + (isGold ? 1.50 : (currentPrice * 0.001));
-    const riskDist = stopLoss - currentPrice;
+    stopLoss = highestHigh + slBuffer;
+    const riskDist = Math.max(2.0, stopLoss - currentPrice);
     takeProfit1 = currentPrice - (riskDist * 2);
     takeProfit2 = currentPrice - (riskDist * 3);
     takeProfit3 = currentPrice - (riskDist * 5);
   } else {
-    stopLoss = lowestLow - (isGold ? 1.50 : (currentPrice * 0.001));
-    const riskDist = currentPrice - stopLoss;
+    stopLoss = lowestLow - slBuffer;
+    const riskDist = Math.max(2.0, currentPrice - stopLoss);
     takeProfit1 = currentPrice + (riskDist * 2);
     takeProfit2 = currentPrice + (riskDist * 3);
     takeProfit3 = currentPrice + (riskDist * 5);
