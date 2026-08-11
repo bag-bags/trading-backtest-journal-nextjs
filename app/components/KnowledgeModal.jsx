@@ -1043,6 +1043,21 @@ const ENCYCLOPEDIA_STRATEGIES = [
 ];
 
 const STRATEGY_CHECKLISTS = {
+  redaSystem: {
+    id: "redaSystem",
+    title: "Reda System Macro & Orderflow Checklist",
+    badge: "✨ REDA SYSTEM",
+    color: "#facc15",
+    description: "Multi-layered confluence system incorporating fundamental bias, candle close technicals, orderflow liquidity mapping, and strict Killzone execution rules.",
+    items: [
+      { key: "reda1", num: 1, title: "1. Fundamental Bias Confirmation", desc: "Identify if Programmed News (CPI/NFP/Inflation) or Headline news is active, and confirm the current macro direction bias." },
+      { key: "reda2", num: 2, title: "2. Technical Bias Close State", desc: "Analyze the HTF candle close. Validate the level structure: Normal close (Pivot Points), CRT Close (Theory behavior), or Engulfing Bar Close (dominates level)." },
+      { key: "reda3", num: 3, title: "3. Institutional Orderflow Mapping", desc: "Map liquidity pools (Buy-side/Sell-side liquidity, Equal Highs/Lows), define Supply/Demand zones, and check for valid structural breakouts." },
+      { key: "reda4", num: 4, title: "4. Point of Interest (POI) & Zone Alignment", desc: "Align with structure. If matching bias, locate OB/FVG for Continuation. If opposing bias, wait for LTF Reversal (CHoCH)." },
+      { key: "reda5", num: 5, title: "5. Killzone Session Timing Check", desc: "Verify that execution is happening strictly within high-liquidity session windows (London/New York Killzones) to avoid manipulation." },
+      { key: "reda6", num: 6, title: "6. Execution Quality & Risk Management", desc: "Observe price action arrival at the level to avoid Fake Breakouts. Verify Stop Loss placement and limit risk to ≤1% of capital." }
+    ]
+  },
   thomasWade: {
     id: "thomasWade",
     title: "Thomas Wade 2nd Entry (2E) & Price Action Checklist",
@@ -1231,7 +1246,7 @@ export default function KnowledgeModal({ isOpen, onClose, mode = "modal", lang =
   }, [lang]);
 
   // Strategy Checklist selection state
-  const [selectedStrategyKey, setSelectedStrategyKey] = useState("heikinAshi");
+  const [selectedStrategyKey, setSelectedStrategyKey] = useState("redaSystem");
   const [checklistState, setChecklistState] = useState({});
   
   // Custom Strategy Form
@@ -1513,6 +1528,7 @@ export default function KnowledgeModal({ isOpen, onClose, mode = "modal", lang =
                       onChange={(e) => setSelectedStrategyKey(e.target.value)}
                       style={{ background: "#0d1117", border: "1px solid #38bdf8", color: "#e6edf3", padding: "10px 14px", borderRadius: "8px", fontSize: "14px", fontWeight: "700", width: "340px" }}
                     >
+                      <option value="redaSystem">✨ Reda System (Macro &amp; Orderflow)</option>
                       <option value="thomasWade">🎯 Thomas Wade 2nd Entry (2E) Price Action</option>
                       <option value="skillzTrading">🔮 @SkillzTrading 4-Step System (System Summary)</option>
                       <option value="heikinAshi">🟢 Heikin Ashi + 100 EMA (Trending Image Strategy)</option>
