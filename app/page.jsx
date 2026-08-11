@@ -6,6 +6,7 @@ import { deepAnalyzeTrade, generateRecommendation } from "./chart/patterns";
 import LiveSessionClocks from "./components/LiveSessionClocks";
 import KnowledgeHub from "./components/KnowledgeHub";
 import WeeklyNewsHub from "./components/WeeklyNewsHub";
+import RedaLiveSignalBanner from "./components/RedaLiveSignalBanner";
 import ProCalendarModal from "./components/ProCalendarModal";
 import KnowledgeModal from "./components/KnowledgeModal";
 import AnalysisModal from "./components/AnalysisModal";
@@ -1202,6 +1203,7 @@ export default function Home() {
 
         {/* Live Session Clocks & Pro Knowledge Hub Banner */}
         <div style={{ display: "flex", flexDirection: "column", gap: "0px", padding: "0 0 10px 0" }}>
+          <RedaLiveSignalBanner symbol={marketSymbol} lang={lang} />
           <LiveSessionClocks lang={lang} />
           <KnowledgeHub lang={lang} />
           <WeeklyNewsHub lang={lang} />
