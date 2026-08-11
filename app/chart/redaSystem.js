@@ -1,9 +1,9 @@
 /**
  * Reda System Strategy Signal Engine & Pre-Trade Checklist Evaluator
- * Based on Macro Fundamental Bias, Technical Candle Close, Orderflow Liquidity Sweeps, POI Zones, and Session Killzones.
+ * Supports XAUUSD, EURUSD, GBPUSD, GBPJPY, DXY, USOIL, NAS100
  */
 
-export function calculateLotSize(accountBalanceInput = 10000, riskPercentInput = 1, entryPriceInput = 0, stopLossPriceInput = 0, symbol = "GOLD") {
+export function calculateLotSize(accountBalanceInput = 10000, riskPercentInput = 1, entryPriceInput = 0, stopLossPriceInput = 0, symbol = "XAUUSD") {
   const accountBalance = parseFloat(accountBalanceInput) || 10000;
   const riskPercent = parseFloat(riskPercentInput) || 1;
   const entryPrice = parseFloat(entryPriceInput) || 0;
@@ -11,12 +11,12 @@ export function calculateLotSize(accountBalanceInput = 10000, riskPercentInput =
 
   const riskAmount = accountBalance * (riskPercent / 100);
   const priceDistance = Math.abs(entryPrice - stopLossPrice);
-  const normSym = (symbol || "GOLD").toUpperCase();
+  const normSym = (symbol || "XAUUSD").toUpperCase().replace(/[^A-Z0-9]/g, "");
 
-  if (!entryPrice || !stopLossPrice || priceDistance < 0.0001) {
+  if (!entryPrice || !stopLossPrice || priceDistance < 0.00001) {
     return {
       riskAmount: riskAmount.toFixed(2),
-      distance: "0.00",
+      distance: "0.0000",
       lotSize: "0.01",
       pipDistance: "0",
       recommendedPosition: "0.01 Lots"
@@ -27,28 +27,32 @@ export function calculateLotSize(accountBalanceInput = 10000, riskPercentInput =
   let pipDistance = priceDistance;
 
   if (normSym.includes("GOLD") || normSym.includes("XAU")) {
-    // Gold (XAUUSD): 1 Standard Lot = 100 oz. $1.00 price change per 1.0 Lot = $100
-    // Example: $10,000 balance, 1% risk = $100. SL distance = $8.00 (e.g. 2650 to 2642).
-    // Lot Size = $100 / ($8.00 * 100) = 0.125 Lots -> 0.13 Lots
+    // Gold (XAUUSD): 1 Standard Lot = 100 oz. $1.00 move per 1.0 Lot = $100
     lotSize = riskAmount / (priceDistance * 100);
-  } else if (normSym.includes("BTC") || normSym.includes("ETH") || normSym.includes("CRYPTO")) {
-    lotSize = riskAmount / priceDistance;
-  } else if (normSym.includes("US100") || normSym.includes("US30") || normSym.includes("US500") || normSym.includes("NASDAQ") || normSym.includes("DOW")) {
-    lotSize = riskAmount / (priceDistance * 10);
+  } else if (normSym.includes("USOIL") || normSym.includes("WTI") || normSym.includes("OIL")) {
+    // Crude Oil (USOIL): 1 Standard Lot = 1,000 barrels. $1.00 move per 1.0 Lot = $1,000
+    lotSize = riskAmount / (priceDistance * 1000);
+  } else if (normSym.includes("NAS100") || normSym.includes("US100") || normSym.includes("NASDAQ")) {
+    // Nasdaq 100 (NAS100): 1 point move per 1.0 Lot = $20
+    lotSize = riskAmount / (priceDistance * 20);
+  } else if (normSym.includes("DXY")) {
+    // Dollar Index (DXY): 1 point move per 1.0 Lot = $1,000
+    lotSize = riskAmount / (priceDistance * 1000);
+  } else if (normSym.includes("JPY")) {
+    // GBPJPY / USDJPY: 1 Pip (0.01) = $10 per lot
+    pipDistance = priceDistance * 100;
+    lotSize = riskAmount / (pipDistance * 10);
   } else {
-    // Standard Forex (EURUSD, GBPUSD, etc.)
-    const isJpy = normSym.includes("JPY");
-    const pipMultiplier = isJpy ? 100 : 10000;
-    pipDistance = priceDistance * pipMultiplier;
+    // Standard Forex (EURUSD, GBPUSD): 1 Pip (0.0001) = $10 per lot
+    pipDistance = priceDistance * 10000;
     lotSize = riskAmount / (pipDistance * 10);
   }
 
-  // Ensure non-zero positive lot size
-  if (isNaN(lotSize) || lotSize <= 0.001) {
+  // Ensure positive valid lot size
+  if (isNaN(lotSize) || lotSize <= 0.0001) {
     lotSize = 0.01;
   }
 
-  // Formatting precision: 2 decimal places or 3 decimal places for fractional micro lots
   let formattedLot = "0.01";
   if (lotSize < 0.05) {
     formattedLot = lotSize.toFixed(3);
@@ -60,7 +64,7 @@ export function calculateLotSize(accountBalanceInput = 10000, riskPercentInput =
 
   return {
     riskAmount: riskAmount.toFixed(2),
-    distance: priceDistance.toFixed(2),
+    distance: priceDistance.toFixed(4),
     pipDistance: pipDistance.toFixed(1),
     lotSize: formattedLot,
     recommendedPosition: `${formattedLot} Lots`
@@ -79,10 +83,27 @@ export function isInsideKillzone() {
   return inLondon || inNY;
 }
 
-export function evaluateRedaSystem(candles = [], symbol = "GOLD", fundamentalBias = "Bullish", useKillzoneFilter = true, accountBalance = 10000, riskPercent = 1) {
+export function evaluateRedaSystem(candles = [], symbol = "XAUUSD", fundamentalBias = "Bullish", useKillzoneFilter = true, accountBalance = 10000, riskPercent = 1) {
+  const normSym = (symbol || "XAUUSD").toUpperCase();
+
+  // Default market fallback prices if candles array is empty
+  const defaultPrices = {
+    XAUUSD: 2650.00,
+    GOLD: 2650.00,
+    EURUSD: 1.0920,
+    GBPUSD: 1.2850,
+    GBPJPY: 191.50,
+    DXY: 102.80,
+    USOIL: 76.40,
+    NAS100: 19850.00,
+    US100: 19850.00
+  };
+
+  const defaultPrice = defaultPrices[normSym] || 2650.00;
+
   if (!candles || candles.length === 0) {
-    const defaultPrice = (symbol || "").toUpperCase().includes("GOLD") || (symbol || "").toUpperCase().includes("XAU") ? 2650.00 : 1.1200;
-    const defaultSl = fundamentalBias === "Bearish" ? defaultPrice + 8.00 : defaultPrice - 8.00;
+    const slBuffer = normSym.includes("GOLD") || normSym.includes("XAU") ? 5.50 : normSym.includes("NAS100") || normSym.includes("US100") ? 35.0 : normSym.includes("GBPJPY") ? 0.35 : normSym.includes("USOIL") ? 0.60 : 0.0020;
+    const defaultSl = fundamentalBias === "Bearish" ? defaultPrice + slBuffer : defaultPrice - slBuffer;
     const lotInfo = calculateLotSize(accountBalance, riskPercent, defaultPrice, defaultSl, symbol);
 
     return {
@@ -93,9 +114,9 @@ export function evaluateRedaSystem(candles = [], symbol = "GOLD", fundamentalBia
       fundamentalBias,
       entry: defaultPrice,
       stopLoss: defaultSl,
-      takeProfit1: fundamentalBias === "Bearish" ? defaultPrice - 16.00 : defaultPrice + 16.00,
-      takeProfit2: fundamentalBias === "Bearish" ? defaultPrice - 24.00 : defaultPrice + 24.00,
-      takeProfit3: fundamentalBias === "Bearish" ? defaultPrice - 40.00 : defaultPrice + 40.00,
+      takeProfit1: fundamentalBias === "Bearish" ? defaultPrice - (slBuffer * 2) : defaultPrice + (slBuffer * 2),
+      takeProfit2: fundamentalBias === "Bearish" ? defaultPrice - (slBuffer * 3) : defaultPrice + (slBuffer * 3),
+      takeProfit3: fundamentalBias === "Bearish" ? defaultPrice - (slBuffer * 5) : defaultPrice + (slBuffer * 5),
       lotInfo,
       checklist: [
         { name: "1. Fundamental Bias", valid: true, detail: `Macro Bias set to ${fundamentalBias}` },
@@ -111,7 +132,7 @@ export function evaluateRedaSystem(candles = [], symbol = "GOLD", fundamentalBia
   const prevCandle = candles.length > 1 ? candles[candles.length - 2] : lastCandle;
   const prevCandle2 = candles.length > 2 ? candles[candles.length - 3] : prevCandle;
 
-  const currentPrice = Number(lastCandle.close) || 2650.00;
+  const currentPrice = Number(lastCandle.close) || defaultPrice;
 
   // 1. Fundamental Bias
   const fundValid = fundamentalBias === "Bullish" || fundamentalBias === "Bearish" || fundamentalBias === "Neutral";
@@ -136,9 +157,9 @@ export function evaluateRedaSystem(candles = [], symbol = "GOLD", fundamentalBia
   let hasSweep = false;
   if (fundamentalBias === "Bearish" && lastCandle.high >= highestHigh * 0.9995) hasSweep = true;
   if (fundamentalBias !== "Bearish" && lastCandle.low <= lowestLow * 1.0005) hasSweep = true;
-  const orderflowValid = hasSweep || Math.abs(lastCandle.close - prevCandle.close) > 0.3;
+  const orderflowValid = hasSweep || Math.abs(lastCandle.close - prevCandle.close) > (currentPrice * 0.0001);
 
-  // 4. POI Zone Alignment (Order Block / FVG)
+  // 4. POI Zone Alignment
   const isFvgBull = prevCandle2 && lastCandle.low > prevCandle2.high;
   const isFvgBear = prevCandle2 && lastCandle.high < prevCandle2.low;
   const poiValid = fundamentalBias === "Bearish" ? (isFvgBear || isBearEngulfing || true) : (isFvgBull || isBullEngulfing || true);
@@ -170,24 +191,29 @@ export function evaluateRedaSystem(candles = [], symbol = "GOLD", fundamentalBia
     }
   }
 
-  // Calculate SL and TP
+  // Symbol specific Stop Loss & Take Profit calculations
+  let slBuffer = 0.0015;
+  if (normSym.includes("GOLD") || normSym.includes("XAU")) slBuffer = 5.00;
+  else if (normSym.includes("NAS100") || normSym.includes("US100")) slBuffer = 35.00;
+  else if (normSym.includes("USOIL") || normSym.includes("OIL")) slBuffer = 0.60;
+  else if (normSym.includes("GBPJPY")) slBuffer = 0.35;
+  else if (normSym.includes("DXY")) slBuffer = 0.20;
+  else slBuffer = currentPrice * 0.0015;
+
   let stopLoss = 0;
   let takeProfit1 = 0;
   let takeProfit2 = 0;
   let takeProfit3 = 0;
 
-  const isGold = (symbol || "").toUpperCase().includes("GOLD") || (symbol || "").toUpperCase().includes("XAU");
-  const slBuffer = isGold ? 4.50 : (currentPrice * 0.003);
-
   if (signal === "SELL" || fundamentalBias === "Bearish") {
     stopLoss = highestHigh + slBuffer;
-    const riskDist = Math.max(2.0, stopLoss - currentPrice);
+    const riskDist = Math.max(slBuffer, stopLoss - currentPrice);
     takeProfit1 = currentPrice - (riskDist * 2);
     takeProfit2 = currentPrice - (riskDist * 3);
     takeProfit3 = currentPrice - (riskDist * 5);
   } else {
     stopLoss = lowestLow - slBuffer;
-    const riskDist = Math.max(2.0, currentPrice - stopLoss);
+    const riskDist = Math.max(slBuffer, currentPrice - stopLoss);
     takeProfit1 = currentPrice + (riskDist * 2);
     takeProfit2 = currentPrice + (riskDist * 3);
     takeProfit3 = currentPrice + (riskDist * 5);

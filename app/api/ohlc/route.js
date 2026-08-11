@@ -52,7 +52,9 @@ const TWELVEDATA_EXPLICIT = {
   USOIL: "WTI/USD",
   WTI: "WTI/USD",
   UKOIL: "BRENT/USD",
-  BRENT: "BRENT/USD"
+  BRENT: "BRENT/USD",
+  DXY: "UUP",
+  USDX: "UUP"
 };
 
 const CURRENCIES = new Set(["EUR", "GBP", "USD", "JPY", "AUD", "NZD", "CAD", "CHF", "SEK", "NOK", "MXN", "ZAR", "SGD", "HKD", "TRY", "CNH", "PLN"]);
