@@ -916,6 +916,23 @@ const CHART_SETUPS_GUIDE = [
 
 const ENCYCLOPEDIA_STRATEGIES = [
   {
+    name: "Reda System (Macro & Orderflow Execution)",
+    category: "Fundamental & Technical Institutional Trading",
+    authorSource: "Reda Souhail (Trader & Mentor - www.ismashprofit.com)",
+    description: "A comprehensive professional trading framework combining fundamental macroeconomic news bias analysis, technical bias verification, institutional orderflow mapping, POI classification, and rule-based execution.",
+    rules: [
+      "Step 1: Understanding the Bias (Fundamental) — Divide news into Programmed News (CPI, NFP, Unemployment, Inflation) which establish medium-to-long-term BIAS, and Headlines (Geopolitical, wars, unexpected speeches) which trigger rapid sentiment shifts and high volatility.",
+      "Step 2: Technical Bias Verification — Verify direction via three candle/level structures: Normal HTF Candle Close (uses HTF Pivot Points as key zones), CRT Close (Pivot Points become secondary; bias relies on CRT candle behavior), and Special Engulfing Bar Close (strong engulfing bar close overrides Pivot Points; bias is determined solely by the candle close).",
+      "Step 3: Orderflow Mapping — Do not guess direction. Perform Liquidity Mapping (Sell-side & Buy-side Liquidity, Equal Highs/Lows), define Supply & Demand Zones, and identify Valid Breakouts (Trendline or S/R Breakouts). Flow sequence: Liquidity → Reaction → Continuation.",
+      "Step 4: Identifying Points of Interest (POI) — If Market Structure matches Bias: Use Continuation Strategies (Order Block (OB), Fair Value Gap (FVG), Fibonacci levels, BOS & Liquidity Sweep). If Market Structure opposes Bias: Wait for a Reversal Move (CHoCH, BOS & Liquidity Sweep).",
+      "Step 5: Timing the Trade — Wait patiently. Identify session Killzones with high liquidity, institutional volume, and clean movements to avoid market manipulations.",
+      "Step 6: Execution & Risk Management — Read price action before entry. Observe how price approaches levels to avoid Fake Breakouts and False Entries. Apply strict risk management to preserve capital. Final rule: Analysis without disciplined execution is worthless."
+    ],
+    winRateExpectation: "70% - 80%",
+    avgRiskReward: "1:3 to 1:6",
+    citations: ["Reda System Manual (2026)", "Ismashprofit Research"]
+  },
+  {
     name: "Heikin Ashi + 100 EMA 6-Step Scalping Strategy",
     category: "Trend Scalping & Doji Reversal",
     authorSource: "Pro Scalping Framework (Image Checklist)",
