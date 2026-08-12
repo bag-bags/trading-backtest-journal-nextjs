@@ -1,8 +1,8 @@
 import "./globals.css";
 
 export const metadata = {
-  title: "#bdl79",
-  description: "For easily backtesting — OHLC market data, trade review, and multi-timeframe charting."
+  title: "TradingBacktesters - Professional Trading Backtest & Journal Platform",
+  description: "TradingBacktesters - Professional backtesting platform with OHLC market data, trade review, Reda System signals, and multi-timeframe charting."
 };
 
 export default function RootLayout({ children }) {

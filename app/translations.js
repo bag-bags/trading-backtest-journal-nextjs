@@ -68,7 +68,7 @@ export const translations = {
     twelveDataPlaceholder: "Default: .env.local (paste key to override)",
     binanceDesc: "Binance public klines, no API key needed.",
     twelveDataDesc: "TwelveData time series, good for Gold and Forex with a free key.",
-    backToJournal: "← Back to Backtest Journal",
+    backToJournal: "← Back to TradingBacktesters Journal",
     analysisPageTitle: "📊 Deep Trade Analysis & Market Setups Engine",
     analysisPageDesc: "Full Page View • Multi-Timeframe SMC Structures, Candlesticks & Macro News Correlation.",
     tradesAnalyzed: "⚡ Dedicated Page • {count} Trades Analyzed",

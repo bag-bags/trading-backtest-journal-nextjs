@@ -923,9 +923,9 @@ export default function Home() {
       <aside className={`sidebar ${mobileMenuOpen ? "open" : ""}`}>
         <div className="brand" style={{ display: "flex", justifyContent: "space-between", alignItems: "center", width: "100%", position: "relative" }}>
           <div style={{ display: "flex", alignItems: "center", gap: "10px" }}>
-            <span className="mark">BDL</span>
+            <span className="mark" style={{ background: "linear-gradient(135deg, #38bdf8, #1d4ed8)", padding: "4px 8px", borderRadius: "6px", fontWeight: "900", color: "#fff", fontSize: "12px" }}>TB</span>
             <div>
-              <h1>#bdl79</h1>
+              <h1 style={{ margin: 0, fontSize: "16px", fontWeight: "900", background: "linear-gradient(135deg, #ffffff, #38bdf8)", WebkitBackgroundClip: "text", WebkitTextFillColor: "transparent" }}>TradingBacktesters</h1>
               <p style={{ margin: 0, fontSize: "11px", color: "#888893" }}>{t.forEasilyBacktesting}</p>
             </div>
           </div>
