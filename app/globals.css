@@ -18,7 +18,7 @@
   --panel: #ffffff;
   --panel-2: #f1f5f9;
   --panel-3: #e2e8f0;
-  --line: #cbd5e1;
+  --line: #e2e8f0;
   --text: #0f172a;
   --muted: #64748b;
   --good: #16a34a;
@@ -26,52 +26,114 @@
   --accent: #2563eb;
 }
 
-[data-theme="light"] body {
-  background: var(--bg);
-  color: var(--text);
+[data-theme="light"] body,
+[data-theme="light"] .shell,
+[data-theme="light"] .workspace,
+[data-theme="light"] .tableWrap {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
 }
 
 [data-theme="light"] .sidebar,
 [data-theme="light"] .review,
-[data-theme="light"] .canvasWrap {
-  background: #ffffff !important;
+[data-theme="light"] .canvasWrap,
+[data-theme="light"] .stat,
+[data-theme="light"] table,
+[data-theme="light"] .tableHeaderActions {
+  background-color: #ffffff !important;
+  color: #0f172a !important;
+  border-color: #e2e8f0 !important;
+}
+
+/* Comprehensive overrides for dark inline-styled sections & components */
+[data-theme="light"] div[style*="background: #09090b"],
+[data-theme="light"] div[style*="background: #090d16"],
+[data-theme="light"] div[style*="background: #0f151d"],
+[data-theme="light"] div[style*="background: #111113"],
+[data-theme="light"] div[style*="background: #121214"],
+[data-theme="light"] div[style*="background: #161b22"],
+[data-theme="light"] div[style*="background: #17171a"],
+[data-theme="light"] div[style*="background: #050506"],
+[data-theme="light"] div[style*="background: rgb(9, 9, 11)"],
+[data-theme="light"] div[style*="background: rgb(9, 13, 22)"],
+[data-theme="light"] div[style*="background: rgb(15, 21, 29)"],
+[data-theme="light"] div[style*="background: rgb(17, 17, 19)"],
+[data-theme="light"] div[style*="background: rgb(22, 27, 34)"],
+[data-theme="light"] div[style*="background: rgb(5, 5, 6)"] {
+  background-color: #ffffff !important;
+  border-color: #e2e8f0 !important;
+  color: #0f172a !important;
+}
+
+[data-theme="light"] h1,
+[data-theme="light"] h2,
+[data-theme="light"] h3,
+[data-theme="light"] h4,
+[data-theme="light"] h5,
+[data-theme="light"] h6,
+[data-theme="light"] strong,
+[data-theme="light"] [style*="color: #ffffff"],
+[data-theme="light"] [style*="color: #fff"],
+[data-theme="light"] [style*="color: rgb(255, 255, 255)"] {
+  color: #0f172a !important;
+}
+
+[data-theme="light"] p,
+[data-theme="light"] label,
+[data-theme="light"] td,
+[data-theme="light"] [style*="color: #888893"],
+[data-theme="light"] [style*="color: #8b949e"],
+[data-theme="light"] [style*="color: #c9d1d9"],
+[data-theme="light"] [style*="color: #a1a1aa"] {
+  color: #475569 !important;
 }
 
 [data-theme="light"] th {
   background: #f1f5f9 !important;
-  color: #475569 !important;
+  color: #334155 !important;
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] tr {
+  border-color: #e2e8f0 !important;
+}
+
+[data-theme="light"] tbody tr:hover {
+  background-color: #f1f5f9 !important;
 }
 
 [data-theme="light"] input,
-[data-theme="light"] select {
-  background: #f8fafc;
-  color: #0f172a;
-  border-color: #cbd5e1;
+[data-theme="light"] select,
+[data-theme="light"] textarea {
+  background-color: #f8fafc !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
 }
 
 [data-theme="light"] input:focus,
 [data-theme="light"] select:focus {
-  background: #ffffff;
-  border-color: #2563eb;
+  background-color: #ffffff !important;
+  border-color: #2563eb !important;
+  box-shadow: 0 0 0 2px rgba(37, 99, 235, 0.15) !important;
 }
 
 [data-theme="light"] .file {
-  background: #f1f5f9;
-  border-color: #cbd5e1;
+  background-color: #f1f5f9 !important;
+  border-color: #cbd5e1 !important;
+  color: #334155 !important;
 }
 
 [data-theme="light"] .topbar {
-  background: rgba(255, 255, 255, 0.95);
-  border-bottom: 1px solid #e2e8f0;
+  background: rgba(255, 255, 255, 0.95) !important;
+  border-bottom: 1px solid #e2e8f0 !important;
 }
 
-[data-theme="light"] tbody tr:hover {
-  background: #f1f5f9;
-}
-
-[data-theme="light"] .stat {
-  background: #ffffff;
-  border-color: #cbd5e1;
+[data-theme="light"] button[style*="background: #050506"],
+[data-theme="light"] button[style*="background: #161b22"],
+[data-theme="light"] button[style*="background: #111113"] {
+  background-color: #f1f5f9 !important;
+  color: #0f172a !important;
+  border-color: #cbd5e1 !important;
 }
 
 * {

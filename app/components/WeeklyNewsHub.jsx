@@ -372,12 +372,12 @@ export default function WeeklyNewsHub({ lang = "en" }) {
   return (
     <div
       style={{
-        background: "linear-gradient(135deg, #111113, #050506)",
-        border: "1px solid #222225",
+        background: "var(--panel)",
+        border: "1px solid var(--line)",
         borderRadius: "12px",
         padding: "18px 22px",
         marginBottom: "24px",
-        boxShadow: "0 10px 30px rgba(0,0,0,0.4)",
+        boxShadow: "0 10px 30px rgba(0,0,0,0.08)",
         position: "relative",
         overflow: "hidden"
       }}
@@ -399,10 +399,10 @@ export default function WeeklyNewsHub({ lang = "en" }) {
       {/* Header */}
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "18px", flexWrap: "wrap", gap: "10px" }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#ffffff", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "var(--text)", display: "flex", alignItems: "center", gap: "8px" }}>
             <span>📅</span> {trans.title}
           </h3>
-          <p style={{ margin: "4px 0 0", color: "#888893", fontSize: "12px" }}>
+          <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: "12px" }}>
             {trans.subtitle}
           </p>
         </div>
@@ -410,9 +410,9 @@ export default function WeeklyNewsHub({ lang = "en" }) {
           onClick={fetchCalendar}
           disabled={loading}
           style={{
-            background: "#050506",
-            border: "1px solid #222225",
-            color: "#a3e635",
+            background: "var(--panel-2)",
+            border: "1px solid var(--line)",
+            color: "var(--text)",
             padding: "6px 12px",
             borderRadius: "6px",
             fontSize: "12px",

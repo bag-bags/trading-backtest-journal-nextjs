@@ -159,13 +159,13 @@ export default function LiveSessionClocks({ lang = "en" }) {
   ];
 
   return (
-    <div style={{ background: "#111113", border: "1px solid #222225", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px" }}>
+    <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "12px", padding: "14px 18px", marginBottom: "20px" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "12px" }}>
         <div style={{ display: "flex", alignItems: "center", gap: "8px" }}>
           <span style={{ fontSize: "16px" }}>🕒</span>
-          <span style={{ color: "#888893", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>{trans.title}</span>
+          <span style={{ color: "var(--muted)", fontSize: "11px", fontWeight: "700", textTransform: "uppercase", letterSpacing: "0.5px" }}>{trans.title}</span>
         </div>
-        <div suppressHydrationWarning style={{ fontSize: "12px", fontWeight: "700", color: "#a3e635", background: "#050506", padding: "4px 10px", borderRadius: "6px", border: "1px solid #222225" }}>
+        <div suppressHydrationWarning style={{ fontSize: "12px", fontWeight: "700", color: "var(--good)", background: "var(--panel-2)", padding: "4px 10px", borderRadius: "6px", border: "1px solid var(--line)" }}>
           🇲🇦 {trans.utcTime}: {mounted ? getMoroccoTimeText() : "--:--:--"}
         </div>
       </div>
@@ -176,7 +176,7 @@ export default function LiveSessionClocks({ lang = "en" }) {
             ? getSessionState(session) 
             : { isActive: false, remainingText: "--h --m --s", pct: 0 };
           return (
-            <div key={session.name} style={{ background: "#050506", border: `1px solid ${isActive ? session.color + "66" : "#222225"}`, borderRadius: "8px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "6px", position: "relative", overflow: "hidden" }}>
+            <div key={session.name} style={{ background: "var(--panel-2)", border: `1px solid ${isActive ? session.color + "66" : "var(--line)"}`, borderRadius: "8px", padding: "10px 12px", display: "flex", flexDirection: "column", gap: "6px", position: "relative", overflow: "hidden" }}>
               <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <span style={{ fontWeight: "700", fontSize: "13px" }}>{session.flag} {getSessionName(session.name)}</span>
                 <span style={{ padding: "2px 8px", borderRadius: "4px", fontSize: "10px", fontWeight: "800", background: isActive ? `${session.color}22` : "#222225", color: isActive ? session.color : "#888893" }}>
