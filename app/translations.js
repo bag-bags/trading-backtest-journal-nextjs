@@ -78,7 +78,9 @@ export const translations = {
     standardCandles: "🕯️ Standard",
     heikinAshiCandles: "📊 Heikin Ashi",
     autoFit: "Auto Fit",
-    focusTrade: "Focus Trade"
+    focusTrade: "Focus Trade",
+    themeDark: "🌙 Dark Theme",
+    themeLight: "☀️ Light Theme"
   },
   fr: {
     chartSettings: "Configuration du graphique",
@@ -159,7 +161,9 @@ export const translations = {
     standardCandles: "🕯️ Standard",
     heikinAshiCandles: "📊 Heikin Ashi",
     autoFit: "Ajustement Auto",
-    focusTrade: "Cibler la Transaction"
+    focusTrade: "Cibler la Transaction",
+    themeDark: "🌙 Mode Sombre",
+    themeLight: "☀️ Mode Clair"
   },
   ar: {
     chartSettings: "إعدادات الرسم البياني",
@@ -240,6 +244,8 @@ export const translations = {
     standardCandles: "🕯️ قياسي",
     heikinAshiCandles: "📊 هيكين آشي",
     autoFit: "ملاءمة تلقائية",
-    focusTrade: "تركيز الصفقة"
+    focusTrade: "تركيز الصفقة",
+    themeDark: "🌙 النمط الداكن",
+    themeLight: "☀️ النمط الفاتح"
   }
 };

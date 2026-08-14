@@ -58,6 +58,20 @@ export default function Home() {
   const [isAnalysisOpen, setIsAnalysisOpen] = useState(false);
   const [isCalendarOpen, setIsCalendarOpen] = useState(false);
   const [showChart, setShowChart] = useState(true);
+  const [theme, setTheme] = useState("dark");
+
+  useEffect(() => {
+    const savedTheme = localStorage.getItem("preferred_theme") || "dark";
+    setTheme(savedTheme);
+    document.documentElement.setAttribute("data-theme", savedTheme);
+  }, []);
+
+  const toggleTheme = () => {
+    const nextTheme = theme === "dark" ? "light" : "dark";
+    setTheme(nextTheme);
+    localStorage.setItem("preferred_theme", nextTheme);
+    document.documentElement.setAttribute("data-theme", nextTheme);
+  };
   const [isKnowledgeOpen, setIsKnowledgeOpen] = useState(false);
   const [editingTrade, setEditingTrade] = useState(null);
   const [isAddTradeOpen, setIsAddTradeOpen] = useState(false);
@@ -931,6 +945,26 @@ export default function Home() {
           </div>
           
           <div style={{ display: "flex", alignItems: "center", gap: "6px" }}>
+            <button
+              onClick={toggleTheme}
+              style={{
+                background: "var(--panel-2)",
+                border: "1px solid var(--line)",
+                color: "var(--text)",
+                padding: "4px 8px",
+                borderRadius: "6px",
+                fontSize: "12px",
+                fontWeight: "700",
+                cursor: "pointer",
+                display: "flex",
+                alignItems: "center",
+                gap: "4px",
+                transition: "all 0.2s"
+              }}
+              title={theme === "dark" ? t.themeLight : t.themeDark}
+            >
+              {theme === "dark" ? "🌙" : "☀️"}
+            </button>
             <select 
               value={lang} 
               onChange={(e) => {
@@ -938,9 +972,9 @@ export default function Home() {
                 localStorage.setItem("preferred_language", e.target.value);
               }}
               style={{
-                background: "#111113",
-                border: "1px solid #222225",
-                color: "#ffffff",
+                background: "var(--panel-2)",
+                border: "1px solid var(--line)",
+                color: "var(--text)",
                 padding: "4px 8px",
                 borderRadius: "6px",
                 fontSize: "12px",

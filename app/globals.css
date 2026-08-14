@@ -1,7 +1,9 @@
-:root {
+:root,
+[data-theme="dark"] {
   --bg: #050506;
   --panel: #111113;
   --panel-2: #17171a;
+  --panel-3: #1f1f23;
   --line: #222225;
   --text: #ffffff;
   --muted: #888893;
@@ -9,6 +11,67 @@
   --bad: #f43f5e;
   --accent: #a3e635;
   --transition-smooth: all 0.3s cubic-bezier(0.16, 1, 0.3, 1);
+}
+
+[data-theme="light"] {
+  --bg: #f8fafc;
+  --panel: #ffffff;
+  --panel-2: #f1f5f9;
+  --panel-3: #e2e8f0;
+  --line: #cbd5e1;
+  --text: #0f172a;
+  --muted: #64748b;
+  --good: #16a34a;
+  --bad: #dc2626;
+  --accent: #2563eb;
+}
+
+[data-theme="light"] body {
+  background: var(--bg);
+  color: var(--text);
+}
+
+[data-theme="light"] .sidebar,
+[data-theme="light"] .review,
+[data-theme="light"] .canvasWrap {
+  background: #ffffff !important;
+}
+
+[data-theme="light"] th {
+  background: #f1f5f9 !important;
+  color: #475569 !important;
+}
+
+[data-theme="light"] input,
+[data-theme="light"] select {
+  background: #f8fafc;
+  color: #0f172a;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] input:focus,
+[data-theme="light"] select:focus {
+  background: #ffffff;
+  border-color: #2563eb;
+}
+
+[data-theme="light"] .file {
+  background: #f1f5f9;
+  border-color: #cbd5e1;
+}
+
+[data-theme="light"] .topbar {
+  background: rgba(255, 255, 255, 0.95);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+[data-theme="light"] tbody tr:hover {
+  background: #f1f5f9;
+}
+
+[data-theme="light"] .stat {
+  background: #ffffff;
+  border-color: #cbd5e1;
 }
 
 * {

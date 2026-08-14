@@ -48,12 +48,16 @@ function ChartContent() {
   const seriesMapRef = useRef({});
 
   const [lang, setLang] = useState("en");
+  const [theme, setTheme] = useState("dark");
 
   useEffect(() => {
     const savedLang = localStorage.getItem("preferred_language");
     if (savedLang) {
       setLang(savedLang);
     }
+    const savedTheme = localStorage.getItem("preferred_theme") || "dark";
+    setTheme(savedTheme);
+    document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
 
   useEffect(() => {
@@ -752,6 +756,27 @@ function ChartContent() {
           <h1>{symbol}</h1>
           <span>{interval}</span>
         </div>
+        <button
+          onClick={() => {
+            const nextTheme = theme === "dark" ? "light" : "dark";
+            setTheme(nextTheme);
+            localStorage.setItem("preferred_theme", nextTheme);
+            document.documentElement.setAttribute("data-theme", nextTheme);
+          }}
+          style={{
+            background: "var(--panel-2)",
+            border: "1px solid var(--line)",
+            color: "var(--text)",
+            padding: "4px 10px",
+            borderRadius: "6px",
+            fontSize: "12px",
+            fontWeight: "700",
+            cursor: "pointer"
+          }}
+          title={theme === "dark" ? t.themeLight : t.themeDark}
+        >
+          {theme === "dark" ? "🌙" : "☀️"}
+        </button>
 
         <div className="chartToolstrip">
           <div className="divider" />
