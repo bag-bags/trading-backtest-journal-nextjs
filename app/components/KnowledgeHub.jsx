@@ -251,13 +251,13 @@ export default function KnowledgeHub({ lang = "en" }) {
   };
 
   return (
-    <div style={{ background: "linear-gradient(135deg, #111113, #050506)", border: "1px solid #222225", borderRadius: "12px", padding: "18px 22px", marginBottom: "24px", boxShadow: "0 10px 30px rgba(0,0,0,0.4)" }}>
+    <div style={{ background: "var(--panel)", border: "1px solid var(--line)", borderRadius: "12px", padding: "18px 22px", marginBottom: "24px", boxShadow: "0 10px 30px rgba(0,0,0,0.08)" }}>
       <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "16px", flexWrap: "wrap", gap: "10px" }}>
         <div>
-          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "#ffffff", display: "flex", alignItems: "center", gap: "8px" }}>
+          <h3 style={{ margin: 0, fontSize: "16px", fontWeight: "800", color: "var(--text)", display: "flex", alignItems: "center", gap: "8px" }}>
             <span>💡</span> {trans.title}
           </h3>
-          <p style={{ margin: "4px 0 0", color: "#888893", fontSize: "12px" }}>
+          <p style={{ margin: "4px 0 0", color: "var(--muted)", fontSize: "12px" }}>
             {trans.subtitle} <strong>{historyCount} {trans.tips}</strong>
           </p>
         </div>
@@ -266,9 +266,9 @@ export default function KnowledgeHub({ lang = "en" }) {
             onClick={fetchFreshTips}
             disabled={loading}
             style={{
-              background: "#050506",
-              border: "1px solid #222225",
-              color: "#a3e635",
+              background: "var(--panel-2)",
+              border: "1px solid var(--line)",
+              color: "var(--text)",
               padding: "6px 12px",
               borderRadius: "6px",
               fontSize: "12px",
@@ -284,9 +284,9 @@ export default function KnowledgeHub({ lang = "en" }) {
           <button
             onClick={() => setShowArchived(!showArchived)}
             style={{
-              background: showArchived ? "#a3e635" : "#050506",
-              border: "1px solid #222225",
-              color: showArchived ? "#000000" : "#ffffff",
+              background: showArchived ? "var(--good)" : "var(--panel-2)",
+              border: "1px solid var(--line)",
+              color: showArchived ? "#000000" : "var(--text)",
               padding: "6px 14px",
               borderRadius: "6px",
               fontSize: "12px",
@@ -302,7 +302,7 @@ export default function KnowledgeHub({ lang = "en" }) {
         </div>
       </div>
 
-      {loading && currentTips.length === 0 && <p style={{ color: "#a3e635", fontSize: "13px", margin: 0 }}>{trans.fetchingText}</p>}
+      {loading && currentTips.length === 0 && <p style={{ color: "var(--good)", fontSize: "13px", margin: 0 }}>{trans.fetchingText}</p>}
 
       {!showArchived ? (
         <div style={{ display: "grid", gridTemplateColumns: "repeat(auto-fit, minmax(280px, 1fr))", gap: "14px" }}>
@@ -310,35 +310,35 @@ export default function KnowledgeHub({ lang = "en" }) {
             const isBookmarked = archivedTips.some((item) => item.title === tip.title);
             const localized = getTipTranslation(tip);
             return (
-              <div key={tip.id || idx} style={{ background: "#111113", border: "1px solid #222225", borderRadius: "10px", padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "10px" }}>
+              <div key={tip.id || idx} style={{ background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "10px", padding: "14px 16px", display: "flex", flexDirection: "column", justifyContent: "space-between", gap: "10px" }}>
                 <div>
                   <div style={{ display: "flex", justifyContent: "space-between", alignItems: "center", marginBottom: "6px" }}>
-                    <span style={{ fontSize: "10px", fontWeight: "800", padding: "2px 8px", borderRadius: "4px", background: "rgba(163,230,53,0.15)", color: "#a3e635", textTransform: "uppercase" }}>
+                    <span style={{ fontSize: "10px", fontWeight: "800", padding: "2px 8px", borderRadius: "4px", background: "rgba(163,230,53,0.15)", color: "var(--good)", textTransform: "uppercase" }}>
                       {trans.trick} #{idx + 1} · {localized.category}
                     </span>
-                    <button onClick={() => toggleArchive(tip)} style={{ background: "transparent", border: "none", color: isBookmarked ? "#fbbf24" : "#484f58", fontSize: "16px", cursor: "pointer" }} title={isBookmarked ? "Remove Bookmark" : "Bookmark / Archive Tip"}>
+                    <button onClick={() => toggleArchive(tip)} style={{ background: "transparent", border: "none", color: isBookmarked ? "#fbbf24" : "var(--muted)", fontSize: "16px", cursor: "pointer" }} title={isBookmarked ? "Remove Bookmark" : "Bookmark / Archive Tip"}>
                       {isBookmarked ? "★" : "☆"}
                     </button>
                   </div>
-                  <h4 style={{ margin: "0 0 6px", fontSize: "13px", fontWeight: "700", color: "#ffffff" }}>{localized.title}</h4>
-                  <p style={{ margin: 0, color: "#888893", fontSize: "12px", lineHeight: "1.5" }}>{localized.content}</p>
+                  <h4 style={{ margin: "0 0 6px", fontSize: "13px", fontWeight: "700", color: "var(--text)" }}>{localized.title}</h4>
+                  <p style={{ margin: 0, color: "var(--muted)", fontSize: "12px", lineHeight: "1.5" }}>{localized.content}</p>
                 </div>
-                {tip.fetchedAt && <span style={{ color: "#888893", fontSize: "10px" }}>✨ {trans.updatedAt} {tip.fetchedAt}</span>}
+                {tip.fetchedAt && <span style={{ color: "var(--muted)", fontSize: "10px" }}>✨ {trans.updatedAt} {tip.fetchedAt}</span>}
               </div>
             );
           })}
         </div>
       ) : (
         <div style={{ display: "flex", flexDirection: "column", gap: "10px" }}>
-          {archivedTips.length === 0 && <p style={{ color: "#888893", fontSize: "12px", margin: 0 }}>{trans.noArchived}</p>}
+          {archivedTips.length === 0 && <p style={{ color: "var(--muted)", fontSize: "12px", margin: 0 }}>{trans.noArchived}</p>}
           {archivedTips.map((tip, idx) => {
             const localized = getTipTranslation(tip);
             return (
-              <div key={idx} style={{ background: "#111113", border: "1px solid #222225", borderRadius: "8px", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
+              <div key={idx} style={{ background: "var(--panel-2)", border: "1px solid var(--line)", borderRadius: "8px", padding: "12px 14px", display: "flex", justifyContent: "space-between", alignItems: "center" }}>
                 <div>
-                  <span style={{ fontSize: "10px", fontWeight: "800", color: "#a3e635", textTransform: "uppercase" }}>{localized.category}</span>
-                  <h4 style={{ margin: "2px 0 4px", fontSize: "13px", fontWeight: "700", color: "#ffffff" }}>{localized.title}</h4>
-                  <p style={{ margin: 0, color: "#888893", fontSize: "12px" }}>{localized.content}</p>
+                  <span style={{ fontSize: "10px", fontWeight: "800", color: "var(--good)", textTransform: "uppercase" }}>{localized.category}</span>
+                  <h4 style={{ margin: "2px 0 4px", fontSize: "13px", fontWeight: "700", color: "var(--text)" }}>{localized.title}</h4>
+                  <p style={{ margin: 0, color: "var(--muted)", fontSize: "12px" }}>{localized.content}</p>
                 </div>
                 <button onClick={() => toggleArchive(tip)} style={{ background: "transparent", border: "none", color: "#fbbf24", fontSize: "18px", cursor: "pointer", marginLeft: "12px" }}>
                   ★

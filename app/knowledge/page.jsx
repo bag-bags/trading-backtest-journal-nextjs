@@ -11,6 +11,8 @@ export default function KnowledgePage() {
     if (savedLang) {
       setLang(savedLang);
     }
+    const savedTheme = localStorage.getItem("preferred_theme") || "dark";
+    document.documentElement.setAttribute("data-theme", savedTheme);
   }, []);
 
   useEffect(() => {
